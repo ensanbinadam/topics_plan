@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>توزيع الموضوعات الدراسية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+      /* هوامش الطباعة */
+      @page {
+        margin: 1cm;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 960px;
+        margin: 2rem auto;
+        background: #fff;
+        padding: 1.5rem 1.5rem 2rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border-radius: 6px;
+      }
+
+      #mainTitle {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.4rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+      }
+      #titleText {
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+        cursor: text;
+      }
+      #titleText:focus {
+        outline: 1px dashed #1976d2;
+        background: #e3f2fd;
+      }
+      .title-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .title-icon svg {
+        width: 1.1em;
+        height: 1.1em;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      button {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.95rem;
+        border-radius: 4px;
+        border: 1px solid #1976d2;
+        background: #1976d2;
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #e0e0e0;
+        border-color: #bdbdbd;
+        color: #333;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .config-panel {
+        margin-bottom: 1rem;
+        padding: 0.75rem 0.9rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+
+      .config-panel h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+      }
+
+      .field-row {
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      label {
+        min-width: 140px;
+        font-size: 0.95rem;
+      }
+      input[type="date"],
+      input[type="text"] {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.95rem;
+      }
+
+      .hint {
+        font-size: 0.85rem;
+        color: #555;
+        margin-top: 0.3rem;
+      }
+
+      #tableContainer {
+        margin-top: 1rem;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 0.35rem 0.45rem;
+        vertical-align: top;
+      }
+      th {
+        background: #f0f0f0;
+        text-align: center;
+        white-space: nowrap;
+      }
+      td:nth-child(1),
+      td:nth-child(2),
+      td:nth-child(3),
+      td:nth-child(4) {
+        text-align: center;
+        white-space: nowrap;
+      }
+      th:nth-child(5),
+      td:nth-child(5) {
+        width: 45%;
+      }
+
+      .topic-input {
+        width: 100%;
+        min-height: 3.2em;
+        border: none;
+        resize: vertical;
+        font: inherit;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .topic-input:focus {
+        outline: 1px solid #1976d2;
+      }
+
+      @media (max-width: 600px) {
+        label {
+          min-width: 0;
+        }
+        .field-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+
+      /* إعدادات خاصة بالطباعة */
+      @media print {
+        body {
+          background: #fff;
+        }
+        .container {
+          box-shadow: none;
+          margin: 0;
+          max-width: 100%;
+          border-radius: 0;
+          padding: 0;
+        }
+        /* إخفاء عناصر الواجهة */
+        .toolbar,
+        .config-panel,
+        .field-row,
+        .hint,
+        #mainTitle {
+          display: none !important;
+        }
+        table {
+          font-size: 0.85rem;
+          page-break-inside: auto;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        thead {
+          display: table-header-group;
+        }
+        tfoot {
+          display: table-footer-group;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 id="mainTitle">
+        <span
+          id="titleText"
+          contenteditable="true"
+          spellcheck="false"
+          title="انقر هنا لتعديل العنوان"
+        >
+          توزيع الموضوعات الدراسية
+        </span>
+        <span
+          class="title-icon"
+          aria-hidden="true"
+          title="العنوان قابل للتعديل"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+            />
+          </svg>
+        </span>
+      </h1>
+
+      <div class="toolbar">
+        <button id="printPdfBtn" type="button">طباعة / حفظ كـ PDF</button>
+        <button id="exportTextBtn" type="button">
+          تصدير الموضوعات إلى ملف نصي
+        </button>
+        <button id="exportJsonBtn" type="button">تصدير الخطة كملف JSON</button>
+        <button id="importJsonBtn" class="secondary" type="button">
+          استيراد خطة من ملف JSON
+        </button>
+        <button id="headerCfgBtn" class="secondary" type="button">
+          إعداد الترويسة والتذييل
+        </button>
+      </div>
+
+      <div id="headerConfigPanel" class="config-panel" hidden>
+        <h2>إعداد الترويسة والتذييل</h2>
+        <div class="field-row">
+          <label for="cfgAdministration">إدارة التعليم:</label>
+          <input
+            type="text"
+            id="cfgAdministration"
+            placeholder="مثال: إدارة التعليم بمحافظة ..."
+          />
+        </div>
+        <div class="field-row">
+          <label for="cfgSchool">المدرسة:</label>
+          <input
+            type="text"
+            id="cfgSchool"
+            placeholder="مثال: مدرسة ... الابتدائية"
+          />
+        </div>
+        <div class="field-row">
+          <label for="cfgTerm">الفصل الدراسي:</label>
+          <input
+            type="text"
+            id="cfgTerm"
+            placeholder="مثال: الفصل الدراسي الأول"
+          />
+        </div>
+        <div class="field-row">
+          <label for="cfgYear">العام الدراسي:</label>
+          <input
+            type="text"
+            id="cfgYear"
+            placeholder="مثال: 1447 هـ / 2026 م"
+          />
+        </div>
+        <div class="field-row">
+          <label for="cfgSubject">المادة الدراسية:</label>
+          <input type="text" id="cfgSubject" placeholder="مثال: الرياضيات" />
+        </div>
+        <div class="field-row">
+          <label for="cfgGrade">الصف الدراسي:</label>
+          <input type="text" id="cfgGrade" placeholder="مثال: الصف الرابع" />
+        </div>
+        <div class="field-row">
+          <label for="cfgTeacher">اسم المعلم /ـة:</label>
+          <input
+            type="text"
+            id="cfgTeacher"
+            placeholder="مثال: أ. محمد بن أحمد"
+          />
+        </div>
+        <div class="field-row">
+          <label style="min-width: auto">
+            <input type="checkbox" id="cfgUseEasternDigits" />
+            استخدام الأرقام الهندية (٠١٢٣٤٥٦٧٨٩)
+          </label>
+        </div>
+        <div class="field-row">
+          <button id="saveHeaderCfgBtn" type="button">حفظ الإعدادات</button>
+        </div>
+        <div class="hint">
+          سيتم استخدام هذه البيانات في الترويسة أعلى الجدول والتذييل أسفله، مع
+          اختيار نمط الأرقام.
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label for="startDate">تاريخ البداية (ميلادي):</label>
+        <input type="date" id="startDate" />
+        <label for="endDate">تاريخ النهاية (ميلادي):</label>
+        <input type="date" id="endDate" />
+        <button id="createTableBtn" type="button">إنشاء / تحديث الجدول</button>
+      </div>
+      <div class="hint">
+        المدى يشمل تاريخ البداية والنهاية معاً، وسيتم إنشاء صف لكل يوم. استيراد
+        JSON يملأ هذه الخانات تلقائياً مع العنوان والبيانات الأخرى.
+      </div>
+
+      <div id="tableContainer"></div>
+
+      <input
+        type="file"
+        id="importJsonInput"
+        accept=".json,application/json"
+        style="display: none"
+      />
+    </div>
+
+    <script>
+      const createTableBtn = document.getElementById("createTableBtn");
+      const printPdfBtn = document.getElementById("printPdfBtn");
+      const exportTextBtn = document.getElementById("exportTextBtn");
+      const exportJsonBtn = document.getElementById("exportJsonBtn");
+      const importJsonBtn = document.getElementById("importJsonBtn");
+      const importJsonInput = document.getElementById("importJsonInput");
+      const headerCfgBtn = document.getElementById("headerCfgBtn");
+      const headerConfigPanel = document.getElementById("headerConfigPanel");
+      const saveHeaderCfgBtn = document.getElementById("saveHeaderCfgBtn");
+      const tableContainer = document.getElementById("tableContainer");
+      const titleSpan = document.getElementById("titleText");
+
+      function parseDateInput(value) {
+        if (!value) return null;
+        const parts = value.split("-").map(Number);
+        if (parts.length !== 3) return null;
+        const [year, month, day] = parts;
+        return new Date(year, month - 1, day);
+      }
+
+      function formatGregorian(date) {
+        const d = String(date.getDate()).padStart(2, "0");
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const y = date.getFullYear();
+        return d + "/" + m + "/" + y;
+      }
+
+      let hijriFormatter = null;
+      function getHijriFormatter() {
+        if (hijriFormatter !== null) return hijriFormatter;
+        try {
+          hijriFormatter = new Intl.DateTimeFormat(
+            "ar-SA-u-ca-islamic-nu-latn",
+            {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }
+          );
+        } catch (e) {
+          try {
+            hijriFormatter = new Intl.DateTimeFormat("ar-SA", {
+              calendar: "islamic",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
+          } catch (e2) {
+            hijriFormatter = null;
+          }
+        }
+        return hijriFormatter;
+      }
+
+      function formatHijri(date) {
+        const formatter = getHijriFormatter();
+        if (!formatter) {
+          return formatGregorian(date);
+        }
+        return formatter.format(date);
+      }
+
+      let weekdayFormatter = null;
+      function getWeekdayFormatter() {
+        if (weekdayFormatter !== null) return weekdayFormatter;
+        try {
+          weekdayFormatter = new Intl.DateTimeFormat("ar-SA", {
+            weekday: "long",
+          });
+        } catch (e) {
+          weekdayFormatter = null;
+        }
+        return weekdayFormatter;
+      }
+
+      function formatWeekday(date) {
+        const f = getWeekdayFormatter();
+        if (f) return f.format(date);
+        const days = [
+          "الأحد",
+          "الاثنين",
+          "الثلاثاء",
+          "الأربعاء",
+          "الخميس",
+          "الجمعة",
+          "السبت",
+        ];
+        return days[date.getDay()];
+      }
+
+      function getCurrentTitle() {
+        if (!titleSpan) return "توزيع الموضوعات الدراسية";
+        const t = titleSpan.innerText.trim();
+        return t || "توزيع الموضوعات الدراسية";
+      }
+
+      function getHeaderConfig() {
+        const getVal = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : "";
+        };
+        const chk = document.getElementById("cfgUseEasternDigits");
+        return {
+          administration: getVal("cfgAdministration"),
+          school: getVal("cfgSchool"),
+          term: getVal("cfgTerm"),
+          academicYear: getVal("cfgYear"),
+          subject: getVal("cfgSubject"),
+          grade: getVal("cfgGrade"),
+          teacherName: getVal("cfgTeacher"),
+          useEasternDigits: !!(chk && chk.checked),
+        };
+      }
+
+      function setHeaderConfig(meta) {
+        const m = meta || {};
+        const setVal = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.value = value || "";
+        };
+        setVal("cfgAdministration", m.administration);
+        setVal("cfgSchool", m.school);
+        setVal("cfgTerm", m.term);
+        setVal("cfgYear", m.academicYear);
+        setVal("cfgSubject", m.subject);
+        setVal("cfgGrade", m.grade);
+        setVal("cfgTeacher", m.teacherName);
+        const chk = document.getElementById("cfgUseEasternDigits");
+        if (chk) chk.checked = !!m.useEasternDigits;
+      }
+
+      function convertDigitsIfNeeded(str, cfg) {
+        const text = String(str);
+        if (!cfg || !cfg.useEasternDigits) return text;
+        const eastern = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+        return text.replace(/[0-9]/g, (d) => eastern[d]);
+      }
+
+      function updateHeaderAndFooter() {
+        const table = document.getElementById("plannerTable");
+        if (!table) return;
+        const cfg = getHeaderConfig();
+        const thead = table.querySelector("thead");
+        if (!thead) return;
+        const rows = thead.querySelectorAll("tr");
+        if (rows.length < 4) return;
+
+        const row1 = rows[0];
+        const row2 = rows[1];
+        const row3 = rows[2];
+
+        const th1 = row1.querySelector("th");
+        const th2 = row2.querySelector("th");
+        const th3 = row3.querySelector("th");
+
+        if (th1) {
+          const parts1 = [];
+          if (cfg.administration)
+            parts1.push("إدارة التعليم: " + cfg.administration);
+          if (cfg.school) parts1.push("المدرسة: " + cfg.school);
+          th1.textContent = convertDigitsIfNeeded(
+            parts1.join("    |    "),
+            cfg
+          );
+        }
+
+        if (th2) {
+          const parts2 = [];
+          const title = getCurrentTitle();
+          if (title) parts2.push(title);
+          if (cfg.term) parts2.push("الفصل الدراسي: " + cfg.term);
+          if (cfg.academicYear)
+            parts2.push("العام الدراسي: " + cfg.academicYear);
+          th2.textContent = convertDigitsIfNeeded(
+            parts2.join("    |    "),
+            cfg
+          );
+        }
+
+        if (th3) {
+          const parts3 = [];
+          if (cfg.subject) parts3.push("المادة الدراسية: " + cfg.subject);
+          if (cfg.grade) parts3.push("الصف الدراسي: " + cfg.grade);
+          th3.textContent = convertDigitsIfNeeded(
+            parts3.join("    |    "),
+            cfg
+          );
+        }
+
+        const footCell = table.querySelector("tfoot td");
+        if (footCell) {
+          const base = "اسم المعلم /ـة: ";
+          const name = cfg.teacherName
+            ? cfg.teacherName
+            : "........................";
+          footCell.textContent = convertDigitsIfNeeded(base + name, cfg);
+          footCell.style.textAlign = "right";
+        }
+      }
+
+      if (titleSpan) {
+        titleSpan.addEventListener("input", updateHeaderAndFooter);
+      }
+
+      if (headerCfgBtn && headerConfigPanel) {
+        headerCfgBtn.addEventListener("click", () => {
+          headerConfigPanel.hidden = !headerConfigPanel.hidden;
+        });
+      }
+
+      function buildTable(startDate, endDate) {
+        tableContainer.innerHTML = "";
+
+        if (
+          !(startDate instanceof Date) ||
+          isNaN(startDate) ||
+          !(endDate instanceof Date) ||
+          isNaN(endDate)
+        ) {
+          alert(
+            "تأكد من إدخال تاريخ بداية ونهاية صحيحين، أو استخدم استيراد JSON."
+          );
+          return false;
+        }
+        if (endDate < startDate) {
+          alert("تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.");
+          return false;
+        }
+
+        const cfg = getHeaderConfig();
+        const table = document.createElement("table");
+        table.id = "plannerTable";
+
+        const thead = document.createElement("thead");
+
+        // 3 صفوف للترويسة + صف عناوين الأعمدة
+        for (let i = 0; i < 3; i++) {
+          const row = document.createElement("tr");
+          const th = document.createElement("th");
+          th.colSpan = 5;
+          th.textContent = "";
+          row.appendChild(th);
+          thead.appendChild(row);
+        }
+
+        const headRow = document.createElement("tr");
+        [
+          "الرقم",
+          "اليوم",
+          "التاريخ الميلادي",
+          "التاريخ الهجري",
+          "الموضوعات",
+        ].forEach((text) => {
+          const th = document.createElement("th");
+          th.textContent = text;
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+
+        let index = 1;
+        for (
+          let d = new Date(startDate.getTime());
+          d <= endDate;
+          d.setDate(d.getDate() + 1)
+        ) {
+          const row = document.createElement("tr");
+
+          const numCell = document.createElement("td");
+          numCell.textContent = convertDigitsIfNeeded(index, cfg);
+          row.appendChild(numCell);
+
+          const dayCell = document.createElement("td");
+          dayCell.textContent = formatWeekday(d); // اليوم نص عربي، لا حاجة لتغيير الأرقام غالباً
+          row.appendChild(dayCell);
+
+          const gregCell = document.createElement("td");
+          gregCell.textContent = convertDigitsIfNeeded(formatGregorian(d), cfg);
+          row.appendChild(gregCell);
+
+          const hijriCell = document.createElement("td");
+          hijriCell.textContent = convertDigitsIfNeeded(formatHijri(d), cfg);
+          row.appendChild(hijriCell);
+
+          const topicCell = document.createElement("td");
+          const textarea = document.createElement("textarea");
+          textarea.className = "topic-input";
+          textarea.setAttribute("placeholder", "اكتب الموضوع هنا...");
+          topicCell.appendChild(textarea);
+          row.appendChild(topicCell);
+
+          tbody.appendChild(row);
+          index++;
+        }
+
+        table.appendChild(tbody);
+
+        const tfoot = document.createElement("tfoot");
+        const footRow = document.createElement("tr");
+        const footCell = document.createElement("td");
+        footCell.colSpan = 5;
+        footCell.textContent = "اسم المعلم /ـة: ........................";
+        footCell.style.textAlign = "right";
+        footRow.appendChild(footCell);
+        tfoot.appendChild(footRow);
+        table.appendChild(tfoot);
+
+        tableContainer.appendChild(table);
+
+        updateHeaderAndFooter();
+
+        return true;
+      }
+
+      function rebuildTablePreservingTopics() {
+        const startValue = document.getElementById("startDate").value;
+        const endValue = document.getElementById("endDate").value;
+        if (!startValue || !endValue) {
+          // لا يوجد نطاق تاريخ، فقط حدّث الترويسة/التذييل إن وجد جدول
+          updateHeaderAndFooter();
+          return;
+        }
+        const startDate = parseDateInput(startValue);
+        const endDate = parseDateInput(endValue);
+        const oldTable = document.getElementById("plannerTable");
+
+        let topics = [];
+        if (oldTable) {
+          const oldRows = oldTable.querySelectorAll("tbody tr");
+          oldRows.forEach((tr) => {
+            const ta = tr.querySelector("textarea.topic-input");
+            topics.push(ta ? ta.value : "");
+          });
+        }
+
+        const ok = buildTable(startDate, endDate);
+        if (!ok) return;
+
+        if (topics.length) {
+          const newRows = document.querySelectorAll("#plannerTable tbody tr");
+          newRows.forEach((tr, idx) => {
+            if (idx >= topics.length) return;
+            const ta = tr.querySelector("textarea.topic-input");
+            if (ta) ta.value = topics[idx];
+          });
+        }
+      }
+
+      if (saveHeaderCfgBtn) {
+        saveHeaderCfgBtn.addEventListener("click", () => {
+          rebuildTablePreservingTopics();
+        });
+      }
+
+      createTableBtn.addEventListener("click", () => {
+        const startInput = document.getElementById("startDate").value;
+        const endInput = document.getElementById("endDate").value;
+
+        const startDate = parseDateInput(startInput);
+        const endDate = parseDateInput(endInput);
+
+        buildTable(startDate, endDate);
+      });
+
+      if (printPdfBtn) {
+        printPdfBtn.addEventListener("click", () => {
+          window.print();
+        });
+      }
+
+      function exportTopicsText() {
+        const table = document.getElementById("plannerTable");
+        if (!table) {
+          alert("لم يتم إنشاء الجدول بعد.");
+          return;
+        }
+
+        const lines = [];
+        const bodyRows = table.querySelectorAll("tbody tr");
+
+        bodyRows.forEach((tr) => {
+          const textarea = tr.querySelector("textarea.topic-input");
+          if (!textarea) return;
+          const text = textarea.value.trim();
+          if (text) {
+            lines.push(text.replace(/\r?\n/g, " "));
+          }
+        });
+
+        if (!lines.length) {
+          alert("لا توجد موضوعات مكتوبة لعمل ملف نصي.");
+          return;
+        }
+
+        const content = "\uFEFF" + lines.join("\r\n");
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "topics_only.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      if (exportTextBtn) {
+        exportTextBtn.addEventListener("click", exportTopicsText);
+      }
+
+      function collectPlanData() {
+        const table = document.getElementById("plannerTable");
+        if (!table) {
+          alert("لم يتم إنشاء الجدول بعد.");
+          return null;
+        }
+
+        const startValue = document.getElementById("startDate").value || null;
+        const endValue = document.getElementById("endDate").value || null;
+
+        const days = [];
+        const bodyRows = table.querySelectorAll("tbody tr");
+
+        bodyRows.forEach((tr, idx) => {
+          const textarea = tr.querySelector("textarea.topic-input");
+          const topic = textarea ? textarea.value : "";
+          days.push({
+            index: idx + 1,
+            topic: topic,
+          });
+        });
+
+        const meta = getHeaderConfig();
+
+        return {
+          version: 3,
+          title: getCurrentTitle(),
+          startDate: startValue,
+          endDate: endValue,
+          meta: {
+            administration: meta.administration,
+            school: meta.school,
+            term: meta.term,
+            academicYear: meta.academicYear,
+            subject: meta.subject,
+            grade: meta.grade,
+            teacherName: meta.teacherName,
+            useEasternDigits: meta.useEasternDigits,
+          },
+          days: days,
+        };
+      }
+
+      function exportPlanJson() {
+        const data = collectPlanData();
+        if (!data) return;
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], {
+          type: "application/json;charset=utf-8;",
+        });
+
+        let filename = "topics_plan.json";
+        if (data.startDate && data.endDate) {
+          filename = `topics_plan_${data.startDate}_to_${data.endDate}.json`;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      if (exportJsonBtn) {
+        exportJsonBtn.addEventListener("click", exportPlanJson);
+      }
+
+      function importPlanFromJsonObject(data) {
+        if (!data || typeof data !== "object") {
+          alert("ملف JSON غير صالح.");
+          return;
+        }
+        if (data.version && ![1, 2, 3].includes(data.version)) {
+          alert("إصدار ملف JSON غير مدعوم.");
+          return;
+        }
+        if (!data.startDate || !data.endDate) {
+          alert("ملف JSON لا يحتوي على نطاق التاريخ.");
+          return;
+        }
+
+        document.getElementById("startDate").value = data.startDate;
+        document.getElementById("endDate").value = data.endDate;
+
+        if (data.title && titleSpan) {
+          titleSpan.innerText = data.title;
+        }
+
+        if (data.meta) {
+          setHeaderConfig(data.meta);
+        }
+
+        const startDate = parseDateInput(data.startDate);
+        const endDate = parseDateInput(data.endDate);
+        const ok = buildTable(startDate, endDate);
+        if (!ok) return;
+
+        if (Array.isArray(data.days)) {
+          const bodyRows = document.querySelectorAll("#plannerTable tbody tr");
+          bodyRows.forEach((tr, idx) => {
+            const entry = data.days[idx];
+            if (!entry) return;
+            const textarea = tr.querySelector("textarea.topic-input");
+            if (textarea && typeof entry.topic === "string") {
+              textarea.value = entry.topic;
+            }
+          });
+        }
+      }
+
+      if (importJsonBtn && importJsonInput) {
+        importJsonBtn.addEventListener("click", () => {
+          importJsonInput.click();
+        });
+
+        importJsonInput.addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const text = e.target.result;
+              const data = JSON.parse(text);
+              importPlanFromJsonObject(data);
+            } catch (err) {
+              alert("فشل قراءة ملف JSON. تأكد من أن الملف صحيح.");
+            } finally {
+              importJsonInput.value = "";
+            }
+          };
+          reader.readAsText(file, "utf-8");
+        });
+      }
+    </script>
+<style>
+    .page-footer {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: #555;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.page-footer a {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+.page-footer a:hover {
+    text-decoration: underline;
+}
+@media print {
+    .page-footer {
+        display: none !important;
+    }
+}
+</style>
+<div class="page-footer">
+    تمت البرمجة باستخدام الذكاء الاصطناعي
+    |
+    <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">
+        تشات جي بي تي
+    </a>
+    <br>
+    لـ
+    <a href="https://t.me/Interact2030" target="_blank" rel="noopener noreferrer">
+        ملتقى التعليم التفاعلي بملتقى معلمي ومعلمات الرياضيات ـ المملكة العربية السعودية
+    </a>
+</div>
+  </body>
+  </body>
+</html>

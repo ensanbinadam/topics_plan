@@ -2,19 +2,937 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مخطط توزيع الموضوعات الدراسية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-Dcpwrlhc.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CrbEQMgJ.css">
+    <style>
+      body {
+        font-family: "Tajawal", sans-serif;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+    <!-- Load React libraries -->
+    <script
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+      crossorigin
+    ></script>
+    <!-- Load Babel to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
-  <body>
+  <body class="bg-gray-100">
     <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useCallback } = React;
+
+      // --- TYPES ---
+      // Interfaces for type checking with Babel
+
+      // --- DATE UTILS ---
+      const EASTERN_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+      const convertDigits = (text, useEastern) => {
+        const str = String(text);
+        if (!useEastern) return str;
+        return str.replace(/[0-9]/g, (d) => EASTERN_DIGITS[parseInt(d)]);
+      };
+
+      const getFormatter = (locale, options) => {
+        try {
+          return new Intl.DateTimeFormat(locale, options);
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const GREGORIAN_FORMATTER = getFormatter("ar-SA", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        calendar: "gregory",
+      });
+      const HIJRI_FORMATTER = getFormatter("ar-SA-u-ca-islamic", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const WEEKDAY_FORMATTER = getFormatter("ar-SA", { weekday: "long" });
+
+      const formatGregorian = (date) => {
+        if (GREGORIAN_FORMATTER) return GREGORIAN_FORMATTER.format(date);
+        const d = String(date.getDate()).padStart(2, "0");
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+      };
+
+      const formatHijri = (date) => {
+        if (HIJRI_FORMATTER)
+          return HIJRI_FORMATTER.format(date).replace(" هـ", "");
+        return "N/A";
+      };
+
+      const formatWeekday = (date) => {
+        if (WEEKDAY_FORMATTER) return WEEKDAY_FORMATTER.format(date);
+        const days = [
+          "الأحد",
+          "الاثنين",
+          "الثلاثاء",
+          "الأربعاء",
+          "الخميس",
+          "الجمعة",
+          "السبت",
+        ];
+        return days[date.getDay()];
+      };
+
+      const parseDateInput = (value) => {
+        if (!value) return null;
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? null : date;
+      };
+
+      const generateDays = (startDateStr, endDateStr) => {
+        const startDate = parseDateInput(startDateStr);
+        const endDate = parseDateInput(endDateStr);
+        if (!startDate || !endDate || endDate < startDate) return [];
+        const days = [];
+        let currentDate = new Date(startDate.getTime());
+        while (currentDate <= endDate) {
+          days.push({
+            gregorianDate: new Date(currentDate.getTime()),
+            topic: "",
+          });
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return days;
+      };
+
+      // --- COMPONENTS ---
+
+      const EditIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors"
+        >
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+        </svg>
+      );
+
+      const Header = ({ title, onTitleChange }) => {
+        const spanRef = useRef(null);
+        const handleInput = (e) => onTitleChange(e.currentTarget.innerText);
+        return (
+          <header className="text-center mb-8 print:hidden">
+            <div
+              className="group inline-flex items-center gap-2 cursor-text"
+              onClick={() => spanRef.current?.focus()}
+            >
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+                <span
+                  ref={spanRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={handleInput}
+                  className="px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-50"
+                  style={{ minWidth: "100px", display: "inline-block" }}
+                >
+                  {title}
+                </span>
+              </h1>
+              <div
+                className="title-icon"
+                aria-hidden="true"
+                title="العنوان قابل للتعديل"
+              >
+                <EditIcon />
+              </div>
+            </div>
+          </header>
+        );
+      };
+
+      const PrintIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+      );
+      const FileTextIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <line x1="10" y1="9" x2="8" y2="9" />
+        </svg>
+      );
+      const FileJsonIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1" />
+          <path d="M14 12a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1" />
+        </svg>
+      );
+      const UploadIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      );
+      const SettingsIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+
+      const ToolbarButton = ({
+        onClick,
+        children,
+        className = "bg-blue-600 hover:bg-blue-700",
+        disabled = false,
+      }) => (
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          className={`flex items-center justify-center gap-2 px-4 py-2 text-white font-semibold rounded-lg shadow-md transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${className} ${
+            disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+          }`}
+        >
+          {children}
+        </button>
+      );
+
+      const Toolbar = ({
+        onPrint,
+        onExportText,
+        onExportJson,
+        onImportClick,
+        onConfigClick,
+        isDataActionsDisabled,
+      }) => (
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:hidden">
+          <ToolbarButton onClick={onPrint} disabled={isDataActionsDisabled}>
+            <PrintIcon /> طباعة / PDF
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={onExportText}
+            disabled={isDataActionsDisabled}
+          >
+            <FileTextIcon /> تصدير نصي
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={onExportJson}
+            disabled={isDataActionsDisabled}
+          >
+            <FileJsonIcon /> تصدير JSON
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={onImportClick}
+            className="bg-gray-600 hover:bg-gray-700"
+          >
+            <UploadIcon /> استيراد JSON
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={onConfigClick}
+            className="bg-gray-600 hover:bg-gray-700"
+          >
+            <SettingsIcon /> إعداد الترويسة
+          </ToolbarButton>
+        </div>
+      );
+
+      const DateRangeSelector = ({ startDate, endDate, onDatesChange }) => (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6 print:hidden">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="startDate"
+                className="font-semibold text-gray-700"
+              >
+                تاريخ البداية:
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => onDatesChange(e.target.value, endDate)}
+                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="endDate" className="font-semibold text-gray-700">
+                تاريخ النهاية:
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => onDatesChange(startDate, e.target.value)}
+                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-3">
+            اختر مدى التواريخ لإنشاء الجدول. سيؤدي استيراد ملف JSON إلى ملء هذه
+            الحقول تلقائيًا.
+          </p>
+        </div>
+      );
+
+      const PlannerTable = ({ days, meta, onTopicChange, onTopicPaste }) => {
+        const handlePaste = (e) => {
+          const target = e.target;
+          if (target.tagName !== "TEXTAREA") return;
+          const row = target.closest("tr");
+          if (!row?.dataset.rowIndex) return;
+          e.preventDefault();
+          const pastedText = e.clipboardData.getData("text");
+          const lines = pastedText.split(/\r?\n/);
+          onTopicPaste(parseInt(row.dataset.rowIndex, 10), lines);
+        };
+
+        if (days.length === 0) {
+          return (
+            <div className="text-center py-12 px-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mx-auto text-gray-400 mb-4"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <h3 className="text-xl font-semibold text-gray-700">
+                لم يتم إنشاء جدول بعد
+              </h3>
+              <p className="text-gray-500 mt-2">
+                الرجاء تحديد تاريخ بداية ونهاية لإنشاء جدول التوزيع.
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-100 print:bg-gray-100">
+                  {[
+                    "م",
+                    "اليوم",
+                    "التاريخ الميلادي",
+                    "التاريخ الهجري",
+                    "الموضوعات الدراسية",
+                  ].map((header, i) => (
+                    <th
+                      key={i}
+                      className={`p-3 border border-gray-300 font-bold text-gray-700 text-center ${
+                        i === 4 ? "w-2/5" : ""
+                      }`}
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody onPaste={handlePaste}>
+                {days.map((day, index) => (
+                  <tr
+                    key={index}
+                    data-row-index={index}
+                    className="even:bg-white odd:bg-gray-50 print:break-inside-avoid"
+                  >
+                    <td className="p-2 border border-gray-300 text-center align-middle w-12">
+                      {convertDigits(index + 1, meta.useEasternDigits)}
+                    </td>
+                    <td className="p-2 border border-gray-300 text-center align-middle whitespace-nowrap">
+                      {formatWeekday(day.gregorianDate)}
+                    </td>
+                    <td className="p-2 border border-gray-300 text-center align-middle whitespace-nowrap">
+                      {convertDigits(
+                        formatGregorian(day.gregorianDate),
+                        meta.useEasternDigits
+                      )}
+                    </td>
+                    <td className="p-2 border border-gray-300 text-center align-middle whitespace-nowrap">
+                      {convertDigits(
+                        formatHijri(day.gregorianDate),
+                        meta.useEasternDigits
+                      )}
+                    </td>
+                    <td className="p-0 border border-gray-300 align-top">
+                      <textarea
+                        data-row-index={index}
+                        value={day.topic}
+                        onChange={(e) => onTopicChange(index, e.target.value)}
+                        placeholder="اكتب الموضوع هنا..."
+                        className="w-full h-full min-h-[50px] p-2 border-0 bg-transparent resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        rows={2}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      };
+
+      const ConfigModal = ({ isOpen, onClose, meta, onSave }) => {
+        const [localMeta, setLocalMeta] = useState(meta);
+        useEffect(() => {
+          setLocalMeta(meta);
+        }, [meta, isOpen]);
+
+        if (!isOpen) return null;
+
+        const handleChange = (e) => {
+          const { name, value, type, checked } = e.target;
+          setLocalMeta((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
+          }));
+        };
+
+        const handleSave = () => {
+          onSave(localMeta);
+          onClose();
+        };
+        const inputFields = [
+          {
+            id: "administration",
+            label: "إدارة التعليم:",
+            placeholder: "مثال: إدارة التعليم بمحافظة ...",
+          },
+          {
+            id: "school",
+            label: "المدرسة:",
+            placeholder: "مثال: مدرسة ... الابتدائية",
+          },
+          {
+            id: "term",
+            label: "الفصل الدراسي:",
+            placeholder: "مثال: الفصل الدراسي الأول",
+          },
+          {
+            id: "academicYear",
+            label: "العام الدراسي:",
+            placeholder: "مثال: 1447 هـ / 2026 م",
+          },
+          {
+            id: "subject",
+            label: "المادة الدراسية:",
+            placeholder: "مثال: الرياضيات",
+          },
+          {
+            id: "grade",
+            label: "الصف الدراسي:",
+            placeholder: "مثال: الصف الرابع",
+          },
+          {
+            id: "teacherName",
+            label: "اسم المعلم/ـة:",
+            placeholder: "مثال: أ. محمد بن أحمد",
+          },
+        ];
+
+        return (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center print:hidden"
+            onClick={onClose}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  إعداد الترويسة والتذييل
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  تُستخدم هذه البيانات في رأس وتذييل الجدول عند الطباعة.
+                </p>
+              </div>
+              <div className="p-6 space-y-4">
+                {inputFields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-1 md:grid-cols-3 items-center gap-2"
+                  >
+                    <label
+                      htmlFor={field.id}
+                      className="font-semibold text-gray-700 md:text-right"
+                    >
+                      {field.label}
+                    </label>
+                    <input
+                      type="text"
+                      id={field.id}
+                      name={field.id}
+                      value={localMeta[field.id]}
+                      onChange={handleChange}
+                      placeholder={field.placeholder}
+                      className="col-span-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center pt-2">
+                  <input
+                    type="checkbox"
+                    id="useEasternDigits"
+                    name="useEasternDigits"
+                    checked={localMeta.useEasternDigits}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="useEasternDigits"
+                    className="mr-2 font-medium text-gray-700"
+                  >
+                    استخدام الأرقام الهندية (٠١٢٣٤٥٦٧٨٩)
+                  </label>
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  حفظ الإعدادات
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Footer = () => (
+        <footer className="mt-8 text-center text-sm text-gray-500 leading-relaxed print:hidden">
+          <p>
+            <a
+              href="https://aistudio.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              تمت البرمجة والتحسين باستخدام الذكاء الاصطناعي
+            </a>
+          </p>
+          <p>
+            لصالح{" "}
+            <a
+              href="https://t.me/Interact2030"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              ملتقى التعليم التفاعلي بملتقى معلمي ومعلمات الرياضيات ـ المملكة
+              العربية السعودية
+            </a>
+          </p>
+        </footer>
+      );
+
+      const PrintHeader = ({ meta, title }) => {
+        const { useEasternDigits } = meta;
+        return (
+          <div className="mb-4">
+            <div className="text-center text-sm">
+              {convertDigits(
+                `إدارة التعليم: ${
+                  meta.administration || "..........."
+                } | المدرسة: ${meta.school || "..........."}`,
+                useEasternDigits
+              )}
+            </div>
+            <div className="py-1 text-center text-xl font-bold text-black">
+              {convertDigits(title, useEasternDigits)}
+            </div>
+            <div className="py-1 text-center text-sm">
+              {convertDigits(
+                `الفصل الدراسي: ${
+                  meta.term || "..........."
+                } | العام الدراسي: ${meta.academicYear || "..........."}`,
+                useEasternDigits
+              )}
+            </div>
+            <div className="pb-2 text-center text-sm border-b-2 border-black">
+              {convertDigits(
+                `المادة الدراسية: ${
+                  meta.subject || "..........."
+                } | الصف الدراسي: ${meta.grade || "..........."}`,
+                useEasternDigits
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const PrintFooter = ({ meta }) => (
+        <div className="mt-8 text-left text-sm">
+          <p>
+            {convertDigits(
+              `اسم المعلم/ـة: ${
+                meta.teacherName || "........................"
+              }`,
+              meta.useEasternDigits
+            )}
+          </p>
+          <p className="mt-2">
+            {convertDigits(
+              `التوقيع: ........................`,
+              meta.useEasternDigits
+            )}
+          </p>
+        </div>
+      );
+
+      const PrintableView = ({ meta, title, children }) => (
+        <div>
+          <PrintHeader meta={meta} title={title} />
+          {children}
+          <PrintFooter meta={meta} />
+        </div>
+      );
+
+      // --- MAIN APP COMPONENT ---
+      const App = () => {
+        const [title, setTitle] = useState("توزيع الموضوعات الدراسية");
+        const [startDate, setStartDate] = useState("");
+        const [endDate, setEndDate] = useState("");
+        const [days, setDays] = useState([]);
+        const [meta, setMeta] = useState({
+          administration: "",
+          school: "",
+          term: "",
+          academicYear: "",
+          subject: "",
+          grade: "",
+          teacherName: "",
+          useEasternDigits: false,
+        });
+        const [isConfigModalOpen, setConfigModalOpen] = useState(false);
+        const importInputRef = useRef(null);
+
+        useEffect(() => {
+          if (startDate && endDate) {
+            const newDays = generateDays(startDate, endDate);
+            setDays((currentDays) =>
+              newDays.map((day, index) => ({
+                ...day,
+                topic: currentDays[index]?.topic || "",
+              }))
+            );
+          } else {
+            setDays([]);
+          }
+        }, [startDate, endDate]);
+
+        const handleTopicChange = useCallback((index, newTopic) => {
+          setDays((currentDays) =>
+            currentDays.map((day, i) =>
+              i === index ? { ...day, topic: newTopic } : day
+            )
+          );
+        }, []);
+
+        const handleTopicPaste = useCallback((startIndex, lines) => {
+          setDays((currentDays) => {
+            const newDays = [...currentDays];
+            lines.forEach((line, i) => {
+              const targetIndex = startIndex + i;
+              if (targetIndex < newDays.length)
+                newDays[targetIndex].topic = line;
+            });
+            return newDays;
+          });
+        }, []);
+
+        const handleFileImport = (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = JSON.parse(e.target?.result);
+              if (
+                !data ||
+                data.version > 3 ||
+                !data.startDate ||
+                !data.endDate
+              ) {
+                alert("ملف JSON غير صالح أو إصدار غير مدعوم.");
+                return;
+              }
+              setTitle(data.title);
+              setStartDate(data.startDate);
+              setEndDate(data.endDate);
+              setMeta(data.meta);
+              const importedDays = generateDays(data.startDate, data.endDate);
+              if (Array.isArray(data.days))
+                data.days.forEach((dayData, index) => {
+                  if (importedDays[index])
+                    importedDays[index].topic = dayData.topic;
+                });
+              setDays(importedDays);
+            } catch (err) {
+              alert("فشل قراءة ملف JSON. تأكد من أن الملف صحيح.");
+            } finally {
+              if (importInputRef.current) importInputRef.current.value = "";
+            }
+          };
+          reader.readAsText(file, "utf-8");
+        };
+
+        const handleExport = (fileType) => {
+          if (!days.length) {
+            alert("لا يوجد جدول لتصديره.");
+            return;
+          }
+          let blob, fileName;
+          if (fileType === "json") {
+            const data = {
+              version: 3,
+              title,
+              startDate,
+              endDate,
+              meta,
+              days: days.map((d, i) => ({ index: i + 1, topic: d.topic })),
+            };
+            blob = new Blob([JSON.stringify(data, null, 2)], {
+              type: "application/json;charset=utf-8;",
+            });
+            fileName = `plan_${startDate}_to_${endDate}.json`;
+          } else {
+            const topics = days
+              .map((day) => day.topic.trim().replace(/\r?\n/g, " "))
+              .filter(Boolean)
+              .join("\r\n");
+            if (!topics) {
+              alert("لا توجد موضوعات مكتوبة لتصديرها.");
+              return;
+            }
+            blob = new Blob(["\uFEFF" + topics], {
+              type: "text/plain;charset=utf-8;",
+            });
+            fileName = "topics.txt";
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        };
+
+        const handlePrint = () => {
+          if (!days.length) {
+            alert("لا يوجد جدول لطباعته.");
+            return;
+          }
+          const printableArea = document.getElementById("printable-area");
+          if (!printableArea) {
+            alert("حدث خطأ أثناء محاولة الطباعة.");
+            return;
+          }
+          const printableClone = printableArea.cloneNode(true);
+          printableClone
+            .querySelectorAll("textarea[data-row-index]")
+            .forEach((textarea) => {
+              const div = document.createElement("div");
+              div.textContent = textarea.value;
+              div.className = "p-2";
+              textarea.parentNode?.replaceChild(div, textarea);
+            });
+          const printWindow = window.open("", "_blank");
+          if (!printWindow) {
+            alert(
+              "فشل فتح نافذة الطباعة. يرجى التحقق من مانع النوافذ المنبثقة."
+            );
+            return;
+          }
+          printWindow.document.write(
+            `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8" /><title>طباعة المخطط</title><script src="https://cdn.tailwindcss.com"><\/script><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"><style>body{font-family:'Tajawal',sans-serif;}@media print{@page{size:A4;margin:1cm;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.overflow-x-auto{overflow-x:visible !important;}table{table-layout:fixed;width:100% !important;min-width:0 !important;border-collapse:collapse;}th,td{border:1px solid #a0aec0;padding:6px;word-wrap:break-word;overflow-wrap:break-word;white-space:normal !important;text-align:center;vertical-align:middle;}table th:nth-of-type(1),table td:nth-of-type(1){width:5%;}table th:nth-of-type(2),table td:nth-of-type(2){width:12%;}table th:nth-of-type(3),table td:nth-of-type(3){width:16%;}table th:nth-of-type(4),table td:nth-of-type(4){width:16%;}table th:nth-of-type(5),table td:nth-of-type(5){width:51%;}td div.p-2{text-align:right;white-space:pre-wrap !important;word-break:break-word;height:100%;min-height:40px;}}</style></head><body>${printableClone.innerHTML}</body></html>`
+          );
+          printWindow.document.close();
+          setTimeout(() => {
+            try {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+            } catch (e) {
+              alert("فشلت عملية الطباعة.");
+              printWindow.close();
+            }
+          }, 1200);
+        };
+
+        return (
+          <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+            <main className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+              <Header title={title} onTitleChange={setTitle} />
+              <Toolbar
+                onPrint={handlePrint}
+                onExportText={() => handleExport("text")}
+                onExportJson={() => handleExport("json")}
+                onImportClick={() => importInputRef.current?.click()}
+                onConfigClick={() => setConfigModalOpen(true)}
+                isDataActionsDisabled={days.length === 0}
+              />
+              <DateRangeSelector
+                startDate={startDate}
+                endDate={endDate}
+                onDatesChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                }}
+              />
+              <div className="mt-6">
+                {days.length > 0 ? (
+                  <div id="printable-area">
+                    <PrintableView meta={meta} title={title}>
+                      <PlannerTable
+                        days={days}
+                        meta={meta}
+                        onTopicChange={handleTopicChange}
+                        onTopicPaste={handleTopicPaste}
+                      />
+                    </PrintableView>
+                  </div>
+                ) : (
+                  <PlannerTable
+                    days={days}
+                    meta={meta}
+                    onTopicChange={handleTopicChange}
+                    onTopicPaste={handleTopicPaste}
+                  />
+                )}
+              </div>
+              <input
+                type="file"
+                ref={importInputRef}
+                accept=".json,application/json"
+                className="hidden"
+                onChange={handleFileImport}
+              />
+            </main>
+            <ConfigModal
+              isOpen={isConfigModalOpen}
+              onClose={() => setConfigModalOpen(false)}
+              meta={meta}
+              onSave={setMeta}
+            />
+            <Footer />
+          </div>
+        );
+      };
+
+      // --- RENDER APP ---
+      const container = document.getElementById("root");
+      if (container) {
+        const root = ReactDOM.createRoot(container);
+        root.render(
+          <React.StrictMode>
+            <App />
+          </React.StrictMode>
+        );
+      }
+    </script>
   </body>
 </html>

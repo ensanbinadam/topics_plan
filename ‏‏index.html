@@ -372,74 +372,70 @@
         isDataActionsDisabled,
         isConfigVisible,
       }) => (
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:hidden">
-          <ToolbarButton
-            onClick={onPrint}
-            disabled={isDataActionsDisabled}
-            title="طباعة الخطة أو حفظها كملف PDF"
-          >
-            <PrintIcon /> طباعة / PDF
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onCopy}
-            disabled={isDataActionsDisabled}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <CopyIcon /> نسخ للـ Word
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onViewModeChange}
-            disabled={isDataActionsDisabled}
-            className="bg-teal-600 hover:bg-teal-700"
-            title="تبديل طريقة العرض بين الجدول والمربعات"
-          >
-            <ViewToggleIcon />{" "}
-            {currentViewMode === "table" ? "عرض المربعات" : "عرض الجدول"}
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onPasteTopics}
-            disabled={isDataActionsDisabled}
-            className="bg-purple-600 hover:bg-purple-700"
-            title="لصق قائمة من الموضوعات من الحافظة وتوزيعها على الأيام"
-          >
-            <ClipboardPasteIcon /> لصق الموضوعات
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onExportText}
-            disabled={isDataActionsDisabled}
-            title="تصدير قائمة الموضوعات كملف نصي"
-          >
-            <FileTextIcon /> تصدير نصي
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onExportJson}
-            disabled={isDataActionsDisabled}
-            title="حفظ العمل بالكامل في ملف يمكن استيراده لاحقًا"
-          >
-            <FileJsonIcon /> تصدير JSON
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onExportHtml}
-            disabled={isDataActionsDisabled}
-            className="bg-orange-600 hover:bg-orange-700"
-            title="تصدير نسخة تفاعلية مستقلة تعمل بدون انترنت"
-          >
-            <CodeIcon /> تصدير HTML
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onImportClick}
-            className="bg-gray-600 hover:bg-gray-700"
-            title="استيراد ملف عمل تم حفظه مسبقًا"
-          >
-            <UploadIcon /> استيراد JSON
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={onConfigClick}
-            className="bg-gray-600 hover:bg-gray-700"
-          >
-            <SettingsIcon />{" "}
-            {isConfigVisible ? "إغلاق الإعدادات" : "فتح الإعدادات"}
-          </ToolbarButton>
+        <div className="flex flex-col items-center justify-center gap-3 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:hidden">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ToolbarButton
+              onClick={onPrint}
+              disabled={isDataActionsDisabled}
+              title="طباعة الخطة أو حفظها كملف PDF"
+            >
+              <PrintIcon /> طباعة / PDF
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onCopy}
+              disabled={isDataActionsDisabled}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <CopyIcon /> نسخ للـ Word
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onViewModeChange}
+              disabled={isDataActionsDisabled}
+              className="bg-teal-600 hover:bg-teal-700"
+              title="تبديل طريقة العرض بين الجدول والمربعات"
+            >
+              <ViewToggleIcon />{" "}
+              {currentViewMode === "table" ? "عرض المربعات" : "عرض الجدول"}
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onPasteTopics}
+              disabled={isDataActionsDisabled}
+              className="bg-purple-600 hover:bg-purple-700"
+              title="لصق قائمة من الموضوعات من الحافظة وتوزيعها على الأيام"
+            >
+              <ClipboardPasteIcon /> لصق الموضوعات
+            </ToolbarButton>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ToolbarButton
+              onClick={onExportText}
+              disabled={isDataActionsDisabled}
+              title="تصدير قائمة الموضوعات كملف نصي"
+            >
+              <FileTextIcon /> تصدير نصي
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onExportJson}
+              disabled={isDataActionsDisabled}
+              title="حفظ العمل بالكامل في ملف يمكن استيراده لاحقًا"
+            >
+              <FileJsonIcon /> تصدير JSON
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onImportClick}
+              className="bg-gray-600 hover:bg-gray-700"
+              title="استيراد ملف عمل تم حفظه مسبقًا"
+            >
+              <UploadIcon /> استيراد JSON
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onConfigClick}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              <SettingsIcon />{" "}
+              {isConfigVisible ? "إغلاق الإعدادات" : "فتح الإعدادات"}
+            </ToolbarButton>
+          </div>
         </div>
       );
 

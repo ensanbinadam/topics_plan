@@ -711,7 +711,9 @@
                       <span className="block">
                         (
                         {convertDigits(
-                          `${formatHijri(startDate)} - ${formatHijri(endDate)}هـ`,
+                          `${formatHijri(startDate)} - ${formatHijri(
+                            endDate
+                          )}هـ`,
                           meta.useEasternDigits
                         )}
                         )
@@ -719,7 +721,9 @@
                       <span className="block">
                         (
                         {convertDigits(
-                          `${formatGregorian(startDate)} - ${formatGregorian(endDate)}م`,
+                          `${formatGregorian(startDate)} - ${formatGregorian(
+                            endDate
+                          )}م`,
                           meta.useEasternDigits
                         )}
                         )
@@ -967,7 +971,10 @@
                 )}
                 {meta.administration && (
                   <div>
-                    {convertDigits(`إدارة التعليم: ${meta.administration}`, useEasternDigits)}
+                    {convertDigits(
+                      `إدارة التعليم: ${meta.administration}`,
+                      useEasternDigits
+                    )}
                   </div>
                 )}
                 {meta.school && (
@@ -979,10 +986,29 @@
 
               {/* Left Column: Rest of data */}
               <div className="w-1/5 text-center">
-                {meta.academicYear && <div>{convertDigits(`العام: ${meta.academicYear}`, useEasternDigits)}</div>}
-                {meta.term && <div>{convertDigits(`الفصل: ${meta.term}`, useEasternDigits)}</div>}
-                {meta.subject && <div>{convertDigits(`المادة: ${meta.subject}`, useEasternDigits)}</div>}
-                {meta.grade && <div>{convertDigits(`الصف: ${meta.grade}`, useEasternDigits)}</div>}
+                {meta.academicYear && (
+                  <div>
+                    {convertDigits(
+                      `العام: ${meta.academicYear}`,
+                      useEasternDigits
+                    )}
+                  </div>
+                )}
+                {meta.term && (
+                  <div>
+                    {convertDigits(`الفصل: ${meta.term}`, useEasternDigits)}
+                  </div>
+                )}
+                {meta.subject && (
+                  <div>
+                    {convertDigits(`المادة: ${meta.subject}`, useEasternDigits)}
+                  </div>
+                )}
+                {meta.grade && (
+                  <div>
+                    {convertDigits(`الصف: ${meta.grade}`, useEasternDigits)}
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-2 pb-2 border-b-2 border-black"></div>
@@ -993,7 +1019,10 @@
         <div className="mt-8 text-left text-sm">
           {meta.teacherName && (
             <p>
-              {convertDigits(`اسم المعلم/ـة: ${meta.teacherName}`, meta.useEasternDigits)}
+              {convertDigits(
+                `اسم المعلم/ـة: ${meta.teacherName}`,
+                meta.useEasternDigits
+              )}
             </p>
           )}
           <p className="mt-2">
@@ -1643,14 +1672,6 @@
           // This will run in the main editor.
           root.render(
             <React.StrictMode>
-              <App isStandalone={false} />
-            </React.StrictMode>
-          );
-        }
-      }
-    </script>
-  </body>
-</html>
               <App isStandalone={false} />
             </React.StrictMode>
           );

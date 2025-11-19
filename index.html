@@ -2,21 +2,54 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <title>توزيع الموضوعات الدراسية</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script
-      type="module"
-      crossorigin
-      src="/topics_plan/assets/index-CcSFyQT8.js"
-    ></script>
+    <title>مخطط توزيع الموضوعات الدراسية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap"
       rel="stylesheet"
-      crossorigin
-      href="/topics_plan/assets/index-D_FGTLXd.css"
     />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  </head>
-  <body>
+    <style>
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        /* Print Specific Overrides to ensure table borders and background colors show */
+        .planner-table-for-print { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
+        .planner-table-for-print th, .planner-table-for-print td { border: 1px solid #a0aec0 !important; padding: 6px !important; word-wrap: break-word !important; text-align: center !important; vertical-align: middle !important; }
+        .planner-table-for-print th { font-weight: bold !important; background-color: #f7fafc !important; }
+        .planner-table-for-print tr { -moz-column-break-inside: avoid; break-inside: avoid; }
+        .planner-table-for-print .bg-yellow-100 { background-color: #fefcbf !important; }
+        .planner-table-for-print .bg-gray-200 { background-color: #e2e8f0 !important; }
+        
+        .cards-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 0.25rem !important; }
+        .card-item { -moz-column-break-inside: avoid !important; break-inside: avoid !important; border: 1px solid #e2e8f0 !important; border-radius: 0.25rem !important; box-shadow: none !important; background-color: #fff !important; padding: 0.5rem !important; display: flex !important; flex-direction: column !important; font-size: 9pt !important; }
+        .card-item .card-header { display: flex !important; justify-content: space-between !important; align-items: baseline !important; border-bottom: 1px solid #e2e8f0 !important; padding-bottom: 0.25rem !important; margin-bottom: 0.25rem !important; }
+        .card-item h3 { font-weight: bold !important; font-size: 10pt !important; color: #2b6cb0 !important; }
+        .card-item .card-date { font-size: 8pt !important; color: #718096 !important; text-align: left !important; }
+        .card-item ol { list-style-type: decimal !important; list-style-position: inside !important; padding-right: 0.75rem !important; color: #2d3748 !important; flex-grow: 1 !important; margin: 0; }
+        .card-item ol li { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+        .card-item p.text-gray-400 { color: #a0aec0 !important; text-align: center !important; flex-grow: 1 !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 1rem 0 !important; }
+      }
+    </style>
+
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2"
+  }
+}
+</script>
+  <script type="module" crossorigin src="./assets/index-DHOQaBh4.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CWjMTJnY.css">
+</head>
+  <body class="bg-gray-100">
     <div id="root"></div>
   </body>
 </html>

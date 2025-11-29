@@ -3,14 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <<<<<<< HEAD
     <link rel="icon" href="./favicon.ico" />
     <title>مخطط توزيع الموضوعات (نسخة المعلم)</title>
+    =======
+    <title>مخطط توزيع الموضوعات الدراسية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    >>>>>>> ef61893978bb4498240d95e7806e5e462fd66a43
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <<<<<<< HEAD
     <script
       type="module"
       crossorigin
@@ -19,8 +25,2277 @@
     <link rel="modulepreload" crossorigin href="./assets/index-BHyfJm8j.js" />
     <link rel="modulepreload" crossorigin href="./assets/App-DBE_swAA.js" />
     <link rel="stylesheet" crossorigin href="./assets/index-CKFB_1Y6.css" />
+    =======
+    <style>
+      body {
+        font-family: "Tajawal", sans-serif;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+    <!-- Load React libraries -->
+    <script
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+      crossorigin
+    ></script>
+    <!-- Load Babel to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    >>>>>>> ef61893978bb4498240d95e7806e5e462fd66a43
   </head>
   <body class="bg-gray-100">
     <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useCallback } = React;
+
+      // --- DATE UTILS ---
+      const EASTERN_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+      const convertDigits = (text, useEastern) => {
+        const str = String(text);
+        if (!useEastern) return str;
+        return str.replace(/[0-9]/g, (d) => EASTERN_DIGITS[parseInt(d)]);
+      };
+
+      const getFormatter = (locale, options) => {
+        try {
+          return new Intl.DateTimeFormat(locale, options);
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const GREGORIAN_FORMATTER = getFormatter("ar-SA", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        calendar: "gregory",
+      });
+      const HIJRI_FORMATTER = getFormatter("ar-SA-u-ca-islamic", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const WEEKDAY_FORMATTER = getFormatter("ar-SA", { weekday: "long" });
+
+      const formatGregorian = (date) => {
+        if (GREGORIAN_FORMATTER) return GREGORIAN_FORMATTER.format(date);
+        const d = String(date.getDate()).padStart(2, "0");
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+      };
+
+      const formatHijri = (date) => {
+        if (HIJRI_FORMATTER)
+          return HIJRI_FORMATTER.format(date).replace(" هـ", "");
+        return "N/A";
+      };
+
+      const formatWeekday = (date) => {
+        if (WEEKDAY_FORMATTER) return WEEKDAY_FORMATTER.format(date);
+        const days = [
+          "الأحد",
+          "الاثنين",
+          "الثلاثاء",
+          "الأربعاء",
+          "الخميس",
+          "الجمعة",
+          "السبت",
+        ];
+        return days[date.getDay()];
+      };
+
+      const parseDateInput = (value) => {
+        if (!value) return null;
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? null : date;
+      };
+
+      const generateDays = (startDateStr, endDateStr) => {
+        const startDate = parseDateInput(startDateStr);
+        const endDate = parseDateInput(endDateStr);
+        if (!startDate || !endDate || endDate < startDate) return [];
+        const days = [];
+        let currentDate = new Date(startDate.getTime());
+        while (currentDate <= endDate) {
+          days.push({
+            gregorianDate: new Date(currentDate.getTime()),
+            topic: "",
+          });
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return days;
+      };
+
+      // --- COMPONENTS ---
+
+      const EditIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors"
+        >
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+        </svg>
+      );
+
+      const Header = ({ title, onTitleChange, isReadOnly = false }) => {
+        const spanRef = useRef(null);
+        const handleInput = (e) => onTitleChange(e.currentTarget.innerText);
+        return (
+          <header className="text-center mb-8 print:hidden">
+            <div
+              className="group inline-flex items-center gap-2 cursor-text"
+              onClick={() => !isReadOnly && spanRef.current?.focus()}
+            >
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+                {isReadOnly ? (
+                  <span className="px-2 py-1">{title}</span>
+                ) : (
+                  <span
+                    ref={spanRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={handleInput}
+                    className="px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-50"
+                    style={{ minWidth: "100px", display: "inline-block" }}
+                  >
+                    {title}
+                  </span>
+                )}
+              </h1>
+              {!isReadOnly && (
+                <div
+                  className="title-icon"
+                  aria-hidden="true"
+                  title="العنوان قابل للتعديل"
+                >
+                  <EditIcon />
+                </div>
+              )}
+            </div>
+            {isReadOnly && (
+              <p className="text-gray-500 mt-2">
+                هذه نسخة قابلة للتخصيص والطباعة. استخدم زر "إعداد الترويسة"
+                لتعديل بياناتك.
+              </p>
+            )}
+          </header>
+        );
+      };
+
+      const PrintIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+      );
+      const CopyIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      );
+      const FileTextIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <line x1="10" y1="9" x2="8" y2="9" />
+        </svg>
+      );
+      const FileJsonIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1" />
+          <path d="M14 12a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1" />
+        </svg>
+      );
+      const UploadIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      );
+      const SettingsIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+      const ClipboardPasteIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M15 2H9a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2V4a2 2 0 0 0-2-2Z" />
+          <path d="M9 2v4h6V2" />
+          <path d="M12 12v6" />
+          <path d="m15 15-3 3-3-3" />
+        </svg>
+      );
+      const CodeIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </svg>
+      );
+      const ViewToggleIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      );
+      const TrashIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      );
+
+      const PlusCircleIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      );
+
+      const CopyPlusIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <line x1="15" y1="9" x2="12.5" y2="9" />
+          <path d="M10 9H8" />
+          <path d="M15 13h-2.5" />
+          <path d="M10 13H8" />
+          <path d="M15 5H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+          <rect width="8" height="8" x="12" y="9" rx="2" />
+          <path d="M16 13v4" />
+          <path d="M14 15h4" />
+        </svg>
+      );
+
+      const Trash2Icon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <path d="M3 6h18" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+      );
+
+      const MinusCircleIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      );
+
+      const HelpCircleIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <path d="M12 17h.01" />
+        </svg>
+      );
+
+      const BrushIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <path d="m18 5-3-3-7.2 7.2a3 3 0 0 0-1.06 2.12V18h5.66a3 3 0 0 0 2.12-1.06Z" />
+          <path d="m9 12 2 2" />
+          <path d="M14.5 5.5 16 4 20 8l-1.5 1.5" />
+          <path d="M12 15v6" />
+          <path d="M17 11v-1a2 2 0 0 0-2-2h-1" />
+        </svg>
+      );
+
+      const MoveIcon = () => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5"
+        >
+          <polyline points="5 9 2 12 5 15" />
+          <polyline points="9 5 12 2 15 5" />
+          <polyline points="15 19 12 22 9 19" />
+          <polyline points="19 9 22 12 19 15" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="12" y1="2" x2="12" y2="22" />
+        </svg>
+      );
+
+      const ToolbarButton = ({
+        onClick,
+        children,
+        className = "bg-blue-600 hover:bg-blue-700",
+        disabled = false,
+      }) => (
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          className={`flex items-center justify-center gap-2 px-6 py-2 text-white font-semibold rounded-lg shadow-md transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${className} ${
+            disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+          }`}
+        >
+          {children}
+        </button>
+      );
+
+      const Toolbar = ({
+        onPrint,
+        onCopy,
+        onPasteTopics,
+        onClearAllTopics,
+        onExportText,
+        onExportJson,
+        onExportHtml,
+        onImportClick,
+        onHelpClick,
+        onConfigClick,
+        onViewModeChange,
+        currentViewMode,
+        isDataActionsDisabled,
+        isConfigVisible,
+      }) => (
+        <div className="flex flex-col items-center justify-center gap-3 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:hidden">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ToolbarButton
+              onClick={onPrint}
+              disabled={isDataActionsDisabled}
+              title="طباعة الخطة أو حفظها كملف PDF"
+            >
+              <PrintIcon /> طباعة / PDF
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onCopy}
+              disabled={isDataActionsDisabled}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <CopyIcon /> نسخ للـ Word
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onViewModeChange}
+              disabled={isDataActionsDisabled}
+              className="bg-teal-600 hover:bg-teal-700"
+              title="تبديل طريقة العرض بين الجدول والمربعات"
+            >
+              <ViewToggleIcon />{" "}
+              {currentViewMode === "table" ? "عرض المربعات" : "عرض الجدول"}
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onPasteTopics}
+              disabled={isDataActionsDisabled}
+              className="bg-purple-600 hover:bg-purple-700"
+              title="لصق قائمة من الموضوعات من الحافظة وتوزيعها على الأيام"
+            >
+              <ClipboardPasteIcon /> لصق الموضوعات
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onClearAllTopics}
+              disabled={isDataActionsDisabled}
+              className="bg-red-600 hover:bg-red-700"
+              title="مسح جميع الموضوعات من الجدول لإعادة التعبئة"
+            >
+              <TrashIcon /> مسح الموضوعات
+            </ToolbarButton>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ToolbarButton
+              onClick={onExportText}
+              disabled={isDataActionsDisabled}
+              title="تصدير قائمة الموضوعات كملف نصي"
+            >
+              <FileTextIcon /> تصدير نصي
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onExportJson}
+              disabled={isDataActionsDisabled}
+              title="حفظ العمل بالكامل في ملف يمكن استيراده لاحقًا"
+            >
+              <FileJsonIcon /> تصدير JSON
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onImportClick}
+              className="bg-gray-600 hover:bg-gray-700"
+              title="استيراد ملف عمل تم حفظه مسبقًا"
+            >
+              <UploadIcon /> استيراد JSON
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onConfigClick}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              <SettingsIcon />{" "}
+              {isConfigVisible ? "إغلاق الإعدادات" : "فتح الإعدادات"}
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={onHelpClick}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              title="عرض دليل الاستخدام"
+            >
+              <HelpCircleIcon /> مساعدة
+            </ToolbarButton>
+          </div>
+        </div>
+      );
+
+      const StandaloneToolbar = ({
+        onPrint,
+        onConfigClick,
+        isConfigVisible,
+      }) => (
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:hidden">
+          <ToolbarButton onClick={onPrint}>
+            <PrintIcon /> طباعة / PDF
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={onConfigClick}
+            className="bg-gray-600 hover:bg-gray-700"
+          >
+            <SettingsIcon />
+            {isConfigVisible ? "إغلاق الإعدادات" : "فتح الإعدادات"}
+          </ToolbarButton>
+        </div>
+      );
+
+      const DateRangeSelector = ({
+        startDate,
+        endDate,
+        onDatesChange,
+        onGenerate,
+      }) => (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6 print:hidden">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="startDate"
+                className="font-semibold text-gray-700"
+              >
+                تاريخ البداية:
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => onDatesChange(e.target.value, endDate)}
+                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="endDate" className="font-semibold text-gray-700">
+                تاريخ النهاية:
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => onDatesChange(startDate, e.target.value)}
+                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <div className="text-center mt-4">
+            <button
+              onClick={onGenerate}
+              disabled={!startDate || !endDate}
+              className="px-8 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              توليد الجدول
+            </button>
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-3">
+            اختر مدى التواريخ ثم اضغط على زر "توليد الجدول". سيؤدي استيراد ملف
+            JSON إلى ملء هذه الحقول تلقائيًا وتوليد الجدول.
+          </p>
+        </div>
+      );
+
+      const PlannerTable = ({
+        days,
+        meta,
+        onTopicChange,
+        onTopicPaste,
+        onAddRow,
+        onDuplicateRow,
+        onSwapTopics,
+        onToggleSpecialDay,
+        onClearTopic,
+        onDeleteRow,
+        isReadOnly = false,
+      }) => {
+        const handlePaste = (e) => {
+          if (isReadOnly) return;
+          const target = e.target;
+          if (target.tagName !== "TEXTAREA") return;
+          const row = target.closest("tr");
+          if (!row?.dataset.rowIndex) return;
+          e.preventDefault();
+          const pastedText = e.clipboardData.getData("text");
+          const lines = pastedText.split(/\r?\n/);
+          onTopicPaste(parseInt(row.dataset.rowIndex, 10), lines);
+        };
+
+        const [dragOverIndex, setDragOverIndex] = useState(null);
+        if (days.length === 0) {
+          return (
+            <div className="text-center py-12 px-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mx-auto text-gray-400 mb-4"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <h3 className="text-xl font-semibold text-gray-700">
+                لم يتم إنشاء جدول بعد
+              </h3>
+              <p className="text-gray-500 mt-2">
+                الرجاء تحديد تاريخ بداية ونهاية لإنشاء جدول التوزيع.
+              </p>
+            </div>
+          );
+        }
+
+        const isDateDuplicated = (date, allDays) => {
+          const dateString = date.toDateString();
+          let count = 0;
+          for (const day of allDays) {
+            if (day.gregorianDate.toDateString() === dateString) count++;
+            if (count > 1) return true;
+          }
+          return false;
+        };
+
+        const daysWithWeekInfo = [];
+        if (days.length > 0) {
+          let weekCounter = 1;
+          for (let i = 0; i < days.length; i++) {
+            const day = days[i];
+            const dayOfWeek = day.gregorianDate.getDay();
+            const isFirstDayOfWeek = i === 0 || dayOfWeek === 0;
+            if (isFirstDayOfWeek && i > 0) {
+              weekCounter++;
+            }
+            let rowSpan = 0;
+            if (isFirstDayOfWeek) {
+              rowSpan = 1;
+              for (let j = i + 1; j < days.length; j++) {
+                if (days[j].gregorianDate.getDay() === 0) break;
+                rowSpan++;
+              }
+            }
+            daysWithWeekInfo.push({
+              ...day,
+              isFirstDayOfWeek,
+              weekNumber: weekCounter,
+              weekRowSpan: rowSpan,
+            });
+          }
+        }
+
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm planner-table-for-print">
+              <thead>
+                <tr className="bg-gray-100 print:bg-gray-100">
+                  {[
+                    "الأسبوع",
+                    "م",
+                    "اليوم",
+                    "التاريخ الميلادي",
+                    "التاريخ الهجري",
+                    "الموضوعات الدراسية",
+                    "إجراءات",
+                  ].map((header, i) => (
+                    <th
+                      key={i}
+                      className={`p-3 border border-gray-300 font-bold text-gray-700 text-center ${
+                        i === 5 ? "w-2/5" : i === 6 ? "print:hidden" : ""
+                      } ${i < 5 ? "whitespace-nowrap" : ""}`}
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody onPaste={handlePaste}>
+                {daysWithWeekInfo.map((day, index) => {
+                  const dayOfWeek = day.gregorianDate.getDay();
+                  const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+                  const isWeekendMarked = meta.hideWeekends && isWeekend;
+
+                  let rowClass = "even:bg-white odd:bg-gray-50";
+                  if (day.isSpecial) {
+                    rowClass = "bg-yellow-100 text-yellow-900";
+                  } else if (isWeekendMarked) {
+                    rowClass = "bg-gray-200 text-gray-500";
+                  }
+
+                  return (
+                    <tr
+                      key={index}
+                      data-row-index={index}
+                      className={`print:break-inside-avoid`}
+                      draggable={!isReadOnly && !isWeekendMarked}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", index);
+                        e.currentTarget.style.opacity = "0.5";
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.style.opacity = "1";
+                        setDragOverIndex(null);
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        if (!isWeekendMarked) setDragOverIndex(index);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const sourceIndex = parseInt(
+                          e.dataTransfer.getData("text/plain"),
+                          10
+                        );
+                        if (sourceIndex !== index && !isWeekendMarked)
+                          onSwapTopics(sourceIndex, index);
+                        setDragOverIndex(null);
+                      }}
+                    >
+                      {day.isFirstDayOfWeek && (
+                        <td
+                          className="p-2 border border-gray-300 text-center align-middle font-bold"
+                          rowSpan={day.weekRowSpan}
+                        >
+                          {convertDigits(day.weekNumber, meta.useEasternDigits)}
+                        </td>
+                      )}
+                      <td
+                        className={`p-2 border border-gray-300 text-center align-middle ${rowClass}`}
+                      >
+                        {convertDigits(index + 1, meta.useEasternDigits)}
+                      </td>
+                      <td
+                        className={`p-2 border border-gray-300 text-center align-middle whitespace-nowrap ${rowClass}`}
+                      >
+                        {formatWeekday(day.gregorianDate)}
+                      </td>
+                      <td
+                        className={`p-2 border border-gray-300 text-center align-middle whitespace-nowrap ${rowClass}`}
+                      >
+                        {convertDigits(
+                          formatGregorian(day.gregorianDate),
+                          meta.useEasternDigits
+                        )}
+                      </td>
+                      <td
+                        className={`p-2 border border-gray-300 text-center align-middle whitespace-nowrap ${rowClass}`}
+                      >
+                        {convertDigits(
+                          formatHijri(day.gregorianDate),
+                          meta.useEasternDigits
+                        )}
+                      </td>
+                      <td
+                        className={`p-0 border border-gray-300 align-top ${rowClass}`}
+                      >
+                        <textarea
+                          data-row-index={index}
+                          value={day.topic}
+                          onChange={
+                            isReadOnly
+                              ? undefined
+                              : (e) => onTopicChange(index, e.target.value)
+                          }
+                          placeholder="اكتب الموضوع هنا..."
+                          className="w-full h-full min-h-[50px] p-2 border-0 bg-transparent resize-y focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-transparent disabled:cursor-not-allowed disabled:text-gray-500 disabled:text-center"
+                          rows={2}
+                          disabled={isWeekendMarked}
+                          readOnly={isReadOnly}
+                        />
+                      </td>
+                      <td
+                        className={`p-2 border border-gray-300 text-center align-middle print:hidden ${rowClass}`}
+                      >
+                        {!isReadOnly && (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => onDeleteRow(index)}
+                              title="حذف اليوم المكرر"
+                              className="p-1 text-green-600 hover:bg-green-100 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={
+                                isWeekendMarked ||
+                                !isDateDuplicated(day.gregorianDate, days)
+                              }
+                            >
+                              <MinusCircleIcon />
+                            </button>
+                            <button
+                              onClick={() => onDuplicateRow(index)}
+                              title="استنساخ هذا اليوم"
+                              className="p-1 text-blue-600 hover:bg-blue-100 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={isWeekendMarked}
+                            >
+                              <CopyPlusIcon />
+                            </button>
+                            <button
+                              onClick={() => onClearTopic(index)}
+                              title="مسح الموضوع"
+                              className="p-1 text-red-600 hover:bg-red-100 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={isWeekendMarked || !day.topic}
+                            >
+                              <Trash2Icon />
+                            </button>
+                            <button
+                              onClick={() => onToggleSpecialDay(index)}
+                              title="تلوين يوم مميز"
+                              className={`p-1 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                                day.isSpecial
+                                  ? "text-yellow-600 bg-yellow-200"
+                                  : "text-gray-500 hover:bg-gray-200"
+                              }`}
+                              disabled={isWeekendMarked}
+                            >
+                              <BrushIcon />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      };
+
+      const PlannerCards = ({ days, meta }) => {
+        if (days.length === 0) return null;
+
+        const weeks = days.reduce((acc, day, index) => {
+          const dayOfWeek = day.gregorianDate.getDay();
+          if (dayOfWeek === 0 || index === 0) {
+            acc.push([]);
+          }
+          acc[acc.length - 1].push(day);
+          return acc;
+        }, []);
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 cards-grid">
+            {weeks.map((week, weekIndex) => {
+              const startDate = week[0].gregorianDate;
+              const endDate = week[week.length - 1].gregorianDate;
+              const daysInWeek = week.filter((day) => {
+                const dayOfWeek = day.gregorianDate.getDay();
+                const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+                const isWeekendMarked = meta.hideWeekends && isWeekend;
+                return (
+                  !isWeekendMarked &&
+                  day.topic &&
+                  day.topic.trim() !== "" &&
+                  day.topic.trim() !== "--- عطلة نهاية الأسبوع ---" &&
+                  day.topic.trim() !== "--- إجازة رسمية ---"
+                );
+              });
+
+              return (
+                <div
+                  key={weekIndex}
+                  className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col print:shadow-none card-item"
+                >
+                  <div className="flex justify-between items-center border-b pb-2 mb-3 card-header">
+                    <h3 className="font-bold text-lg text-blue-700 whitespace-nowrap">
+                      الأسبوع{" "}
+                      {convertDigits(weekIndex + 1, meta.useEasternDigits)}
+                    </h3>
+                    <div className="text-xs text-gray-500 text-left card-date">
+                      <span className="block">
+                        (
+                        {convertDigits(
+                          `${formatHijri(startDate)} - ${formatHijri(
+                            endDate
+                          )}هـ`,
+                          meta.useEasternDigits
+                        )}
+                        )
+                      </span>
+                      <span className="block">
+                        (
+                        {convertDigits(
+                          `${formatGregorian(startDate)} - ${formatGregorian(
+                            endDate
+                          )}م`,
+                          meta.useEasternDigits
+                        )}
+                        )
+                      </span>
+                    </div>
+                  </div>
+                  {daysInWeek.length > 0 ? (
+                    <ol className="list-decimal list-inside space-y-1 text-gray-800 pr-4 flex-grow">
+                      {daysInWeek.map((day, topicIndex) => (
+                        <li key={topicIndex}>
+                          {day.isSpecial ? (
+                            <span className="bg-yellow-200 px-1 rounded">
+                              {day.topic}
+                            </span>
+                          ) : (
+                            day.topic
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="text-gray-400 text-center flex-grow flex items-center justify-center py-4">
+                      لا توجد موضوعات لهذا الأسبوع.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      };
+
+      const ConfigForm = ({ meta, onSave, isReadOnly = false }) => {
+        const logoInputRef = useRef(null);
+
+        const handleChange = (e) => {
+          if (isReadOnly) return;
+          const { name, value, type, checked } = e.target;
+          onSave({
+            ...meta,
+            [name]: type === "checkbox" ? checked : value,
+          });
+        };
+
+        const handleLogoChange = (e) => {
+          if (isReadOnly) return;
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              onSave({ ...meta, logo: reader.result });
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+
+        const handleRemoveLogo = () => {
+          if (isReadOnly) return;
+          onSave({ ...meta, logo: "" });
+          if (logoInputRef.current) logoInputRef.current.value = "";
+        };
+
+        const inputFields = [
+          {
+            id: "administration",
+            label: "إدارة التعليم:",
+            placeholder: "مثال: إدارة التعليم بمحافظة ...",
+          },
+          {
+            id: "school",
+            label: "المدرسة:",
+            placeholder: "مثال: مدرسة ... الابتدائية",
+          },
+          {
+            id: "term",
+            label: "الفصل الدراسي:",
+            placeholder: "مثال: الفصل الدراسي الأول",
+          },
+          {
+            id: "academicYear",
+            label: "العام الدراسي:",
+            placeholder: "مثال: 1447 هـ / 2026 م",
+          },
+          {
+            id: "subject",
+            label: "المادة الدراسية:",
+            placeholder: "مثال: الرياضيات",
+          },
+          {
+            id: "grade",
+            label: "الصف الدراسي:",
+            placeholder: "مثال: الصف الرابع",
+          },
+          {
+            id: "teacherName",
+            label: "اسم المعلم/ـة:",
+            placeholder: "مثال: أ. محمد بن أحمد",
+          },
+        ];
+
+        return (
+          <div className="space-y-4">
+            {inputFields.map((field) => (
+              <div
+                key={field.id}
+                className="grid grid-cols-1 md:grid-cols-3 items-center gap-2"
+              >
+                <label
+                  htmlFor={field.id}
+                  className="font-semibold text-gray-700 md:text-right"
+                >
+                  {field.label}
+                </label>
+                <input
+                  type="text"
+                  id={field.id}
+                  name={field.id}
+                  value={meta[field.id] || ""}
+                  onChange={handleChange}
+                  placeholder={field.placeholder}
+                  disabled={isReadOnly}
+                  className="col-span-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                />
+              </div>
+            ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-2 pt-2">
+              <label className="font-semibold text-gray-700 md:text-right">
+                شعار الجهة:
+              </label>
+              <div className="col-span-2 flex items-center gap-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={logoInputRef}
+                  onChange={handleLogoChange}
+                  className="hidden"
+                  id="logo-upload"
+                  disabled={isReadOnly}
+                />
+                <button
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isReadOnly}
+                  className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  تحميل شعار
+                </button>
+                {meta.logo && (
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={meta.logo}
+                      alt="الشعار الحالي"
+                      className="h-12 w-12 object-contain border rounded-md"
+                    />
+                    {!isReadOnly && (
+                      <button
+                        onClick={handleRemoveLogo}
+                        className="text-red-500 hover:text-red-700 font-semibold"
+                      >
+                        &times; إزالة
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center pt-2">
+              <input
+                type="checkbox"
+                id="useEasternDigits"
+                name="useEasternDigits"
+                checked={meta.useEasternDigits}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+              />
+              <label
+                htmlFor="useEasternDigits"
+                className="mr-2 font-medium text-gray-700"
+              >
+                استخدام الأرقام الهندية (٠١٢٣٤٥٦٧٨٩)
+              </label>
+            </div>
+            <div className="flex items-center pt-2">
+              <input
+                type="checkbox"
+                id="hideWeekends"
+                name="hideWeekends"
+                checked={meta.hideWeekends}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+              />
+              <label
+                htmlFor="hideWeekends"
+                className="mr-2 font-medium text-gray-700"
+              >
+                تمييز عطلة نهاية الأسبوع (الجمعة والسبت)
+              </label>
+            </div>
+          </div>
+        );
+      };
+
+      const Footer = () => (
+        <footer className="mt-8 text-center text-sm text-gray-500 leading-relaxed print:hidden">
+          <p>
+            تمت برمجته وتطويره بـ{" "}
+            <a
+              href="https://aistudio.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              قوقل ستديو
+            </a>
+            {" و "}
+            <a
+              href="https://gemini.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              جميناي
+            </a>
+          </p>
+          <p>
+            لـ:{" "}
+            <a
+              href="https://t.me/Interact2030/77833"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              ملتقى التعليم التفاعلي
+            </a>
+          </p>
+        </footer>
+      );
+
+      const HelpModal = ({ onClose }) => {
+        const features = [
+          {
+            icon: <PrintIcon />,
+            name: "طباعة / PDF",
+            desc: "لطباعة الخطة أو حفظها كملف PDF.",
+          },
+          {
+            icon: <CopyIcon />,
+            name: "نسخ للـ Word",
+            desc: "لنسخ الجدول بتنسيقه ليتم لصقه مباشرة في برنامج Microsoft Word.",
+          },
+          {
+            icon: <ViewToggleIcon />,
+            name: "عرض المربعات/الجدول",
+            desc: "للتبديل بين عرض الخطة كجدول تفصيلي أو كملخص أسبوعي.",
+          },
+          {
+            icon: <ClipboardPasteIcon />,
+            name: "لصق الموضوعات",
+            desc: "للصق قائمة من الموضوعات من الحافظة وتوزيعها تلقائياً على أيام الدراسة.",
+          },
+          {
+            icon: <TrashIcon />,
+            name: "مسح الموضوعات",
+            desc: "لمسح محتوى جميع الموضوعات في الجدول.",
+          },
+          {
+            icon: <FileTextIcon />,
+            name: "تصدير نصي",
+            desc: "لتصدير قائمة الموضوعات فقط كملف نصي (.txt).",
+          },
+          {
+            icon: <FileJsonIcon />,
+            name: "تصدير JSON",
+            desc: "لحفظ العمل بالكامل في ملف يمكن استيراده لاحقاً لمتابعة العمل.",
+          },
+          {
+            icon: <UploadIcon />,
+            name: "استيراد JSON",
+            desc: "لاستعادة عمل تم حفظه مسبقاً من ملف JSON.",
+          },
+          {
+            icon: <SettingsIcon />,
+            name: "فتح/إغلاق الإعدادات",
+            desc: "لإظهار أو إخفاء لوحة إعدادات الترويسة والطباعة.",
+          },
+        ];
+        const tableActions = [
+          {
+            icon: <MinusCircleIcon />,
+            name: "حذف اليوم المكرر",
+            desc: "لحذف صف تم استنساخه. لا تكون فعالة إلا إذا كان تاريخ اليوم مكرراً.",
+          },
+          {
+            icon: <CopyPlusIcon />,
+            name: "استنساخ اليوم",
+            desc: "لإنشاء نسخة من الصف الحالي بنفس التاريخ، مفيد لإضافة نشاط آخر في نفس اليوم.",
+          },
+          {
+            icon: <Trash2Icon />,
+            name: "مسح الموضوع",
+            desc: "لتفريغ محتوى خانة الموضوعات فقط دون حذف الصف.",
+          },
+          {
+            icon: <BrushIcon />,
+            name: "تلوين يوم مميز",
+            desc: "لتمييز يوم بلون خاص (مثل يوم إجازة أو نشاط). اضغط مرة أخرى للإلغاء.",
+          },
+        ];
+        tableActions.push({
+          icon: <MoveIcon />,
+          name: "سحب وإفلات لتبديل الموضوعات",
+          desc: "اسحب أي صف وأفلته على صف آخر لتبديل محتوى الموضوعات بينهما بسرعة وسهولة.",
+        });
+
+        return (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 print:hidden"
+            onClick={onClose}
+          >
+            <div
+              className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center border-b pb-3 mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  دليل الاستخدام
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="text-gray-500 hover:text-gray-800 text-3xl font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-700 mt-6 mb-3">
+                أزرار شريط الأدوات
+              </h3>
+              <div className="space-y-3">
+                {features.map((f) => (
+                  <div
+                    key={f.name}
+                    className="flex items-start gap-4 p-2 rounded-md bg-gray-50"
+                  >
+                    <div className="flex-shrink-0 w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                      {f.icon}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">{f.name}</p>
+                      <p className="text-sm text-gray-600">{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-700 mt-8 mb-3">
+                أزرار الإجراءات في الجدول
+              </h3>
+              <div className="space-y-3">
+                {tableActions.map((f) => (
+                  <div
+                    key={f.name}
+                    className="flex items-start gap-4 p-2 rounded-md bg-gray-50"
+                  >
+                    <div className="flex-shrink-0 w-12 h-12 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
+                      {f.icon}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">{f.name}</p>
+                      <p className="text-sm text-gray-600">{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"
+                >
+                  فهمت، إغلاق
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const PrintHeader = ({ meta, title }) => {
+        const { useEasternDigits } = meta;
+        return (
+          <div className="mb-2">
+            <div className="flex justify-between items-center text-xs px-2">
+              {/* Right Column: Logo */}
+              <div className="w-1/5 text-right">
+                {meta.logo && (
+                  <img
+                    src={meta.logo}
+                    alt="شعار"
+                    className="h-16 w-auto max-w-[75px] object-contain inline-block"
+                  />
+                )}
+              </div>
+
+              {/* Center Column: Title, Admin, School */}
+              <div className="w-3/5 text-center">
+                {title && (
+                  <div className="text-base font-bold text-black">
+                    {convertDigits(title, useEasternDigits)}
+                  </div>
+                )}
+                {meta.administration && (
+                  <div>
+                    {convertDigits(
+                      `إدارة التعليم: ${meta.administration}`,
+                      useEasternDigits
+                    )}
+                  </div>
+                )}
+                {meta.school && (
+                  <div>
+                    {convertDigits(`المدرسة: ${meta.school}`, useEasternDigits)}
+                  </div>
+                )}
+              </div>
+
+              {/* Left Column: Rest of data */}
+              <div className="w-1/5 text-center">
+                {meta.academicYear && (
+                  <div>
+                    {convertDigits(
+                      `العام: ${meta.academicYear}`,
+                      useEasternDigits
+                    )}
+                  </div>
+                )}
+                {meta.term && (
+                  <div>
+                    {convertDigits(`الفصل: ${meta.term}`, useEasternDigits)}
+                  </div>
+                )}
+                {meta.subject && (
+                  <div>
+                    {convertDigits(`المادة: ${meta.subject}`, useEasternDigits)}
+                  </div>
+                )}
+                {meta.grade && (
+                  <div>
+                    {convertDigits(`الصف: ${meta.grade}`, useEasternDigits)}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 pb-2 border-b-2 border-black"></div>
+          </div>
+        );
+      };
+      const PrintFooter = ({ meta }) => (
+        <div className="mt-8 text-left text-sm">
+          {meta.teacherName && (
+            <>
+              <p>
+                {convertDigits(
+                  `اسم المعلم/ـة: ${meta.teacherName}`,
+                  meta.useEasternDigits
+                )}
+              </p>
+              <p className="mt-2">
+                {convertDigits(
+                  `التوقيع: ........................`,
+                  meta.useEasternDigits
+                )}
+              </p>
+            </>
+          )}
+        </div>
+      );
+
+      // --- MAIN APP COMPONENT ---
+      const App = ({ isStandalone = false, initialData = null }) => {
+        const [title, setTitle] = useState(() =>
+          isStandalone ? initialData.title : "توزيع الموضوعات الدراسية"
+        );
+        const [startDate, setStartDate] = useState(() =>
+          isStandalone
+            ? initialData.days.length > 0
+              ? initialData.days[0].gregorianDate.substring(0, 10)
+              : ""
+            : ""
+        );
+        const [endDate, setEndDate] = useState(() =>
+          isStandalone
+            ? initialData.days.length > 0
+              ? initialData.days[
+                  initialData.days.length - 1
+                ].gregorianDate.substring(0, 10)
+              : ""
+            : ""
+        );
+        const [days, setDays] = useState(() =>
+          isStandalone
+            ? initialData.days.map((d) => ({
+                ...d,
+                gregorianDate: new Date(d.gregorianDate),
+              }))
+            : []
+        );
+        const [meta, setMeta] = useState(() =>
+          isStandalone
+            ? initialData.meta
+            : {
+                administration: "",
+                school: "",
+                term: "",
+                academicYear: "",
+                subject: "",
+                grade: "",
+                teacherName: "",
+                useEasternDigits: false,
+                hideWeekends: false,
+                logo: "",
+              }
+        );
+        const [isConfigVisible, setConfigVisible] = useState(false);
+        const [isHelpVisible, setHelpVisible] = useState(false);
+        const [viewMode, setViewMode] = useState(() =>
+          isStandalone ? "cards" : "table"
+        );
+        const importInputRef = useRef(null);
+
+        const handleGenerateTable = useCallback(() => {
+          if (startDate && endDate) {
+            const newDays = generateDays(startDate, endDate);
+            // This logic preserves topics when dates change or weekends are toggled,
+            // preventing the imported topics from being wiped out.
+            setDays((currentDays) => {
+              return newDays.map((newDay) => {
+                // Find a matching day in the old array to preserve its topic
+                const matchingOldDay = currentDays.find(
+                  (oldDay) =>
+                    oldDay.gregorianDate.toDateString() ===
+                    newDay.gregorianDate.toDateString()
+                );
+                const dayOfWeek = newDay.gregorianDate.getDay();
+                const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+                const isSpecial = matchingOldDay?.isSpecial || false;
+
+                if (meta.hideWeekends && isWeekend) {
+                  return { ...newDay, topic: "--- عطلة نهاية الأسبوع ---" };
+                }
+
+                const preservedTopic =
+                  matchingOldDay?.topic &&
+                  matchingOldDay.topic !== "--- عطلة نهاية الأسبوع ---"
+                    ? matchingOldDay.topic
+                    : "";
+                return { ...newDay, topic: preservedTopic, isSpecial };
+              });
+            });
+          }
+        }, [startDate, endDate, meta.hideWeekends]);
+
+        useEffect(() => {
+          if (isStandalone) return;
+          handleGenerateTable();
+        }, [meta.hideWeekends]);
+
+        const handleTopicChange = useCallback((index, newTopic) => {
+          setDays((currentDays) =>
+            currentDays.map((day, i) =>
+              i === index ? { ...day, topic: newTopic } : day
+            )
+          );
+        }, []);
+
+        const handleTopicPaste = useCallback(
+          (startIndex, lines) => {
+            setDays((currentDays) => {
+              const newDays = [...currentDays];
+              let currentDayIndex = startIndex;
+
+              lines.forEach((line) => {
+                // Find the next writable day starting from currentDayIndex
+                while (currentDayIndex < newDays.length) {
+                  const day = newDays[currentDayIndex];
+                  const dayOfWeek = day.gregorianDate.getDay();
+                  const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+                  if (!(meta.hideWeekends && isWeekend)) {
+                    newDays[currentDayIndex].topic = line;
+                    currentDayIndex++; // Move to the next day for the next line
+                    return; // Exit forEach loop for this line
+                  }
+                  currentDayIndex++; // Skip this weekend day
+                }
+              });
+
+              return newDays;
+            });
+          },
+          [meta.hideWeekends]
+        );
+
+        const handleClearAllTopics = useCallback(() => {
+          if (!window.confirm("هل أنت متأكد من رغبتك في مسح جميع الموضوعات؟")) {
+            return;
+          }
+          setDays((currentDays) =>
+            currentDays.map((day) => {
+              const dayOfWeek = day.gregorianDate.getDay();
+              const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+
+              let topic = "";
+              if (meta.hideWeekends && isWeekend) {
+                topic = "--- عطلة نهاية الأسبوع ---";
+              }
+              return { ...day, topic: topic };
+            })
+          );
+        }, [meta.hideWeekends]);
+
+        const handleClearTopic = useCallback(
+          (index) => {
+            if (
+              !window.confirm("هل أنت متأكد من رغبتك في مسح محتوى هذا الموضوع؟")
+            ) {
+              return;
+            }
+            handleTopicChange(index, "");
+          },
+          [handleTopicChange]
+        );
+
+        const handleToggleSpecialDay = useCallback((index) => {
+          setDays((currentDays) =>
+            currentDays.map((day, i) =>
+              i === index ? { ...day, isSpecial: !day.isSpecial } : day
+            )
+          );
+        }, []);
+
+        const handleAddRow = useCallback(
+          (index) => {
+            setDays((currentDays) => {
+              const newDays = [...currentDays];
+              const newDayDate = new Date(
+                newDays[index].gregorianDate.getTime()
+              );
+              newDayDate.setDate(newDayDate.getDate() + 1);
+
+              const newDay = { gregorianDate: newDayDate, topic: "" };
+              newDays.splice(index + 1, 0, newDay);
+
+              // Shift all subsequent days
+              for (let i = index + 2; i < newDays.length; i++) {
+                newDays[i].gregorianDate.setDate(
+                  newDays[i].gregorianDate.getDate() + 1
+                );
+              }
+              return newDays;
+            });
+          },
+          [setDays]
+        );
+
+        const handleSwapTopics = useCallback((sourceIndex, targetIndex) => {
+          setDays((currentDays) => {
+            const newDays = [...currentDays];
+            const sourceDay = newDays[sourceIndex];
+            const targetDay = newDays[targetIndex];
+
+            // Swap topics and special status
+            [newDays[sourceIndex], newDays[targetIndex]] = [
+              {
+                ...sourceDay,
+                topic: targetDay.topic,
+                isSpecial: targetDay.isSpecial,
+              },
+              {
+                ...targetDay,
+                topic: sourceDay.topic,
+                isSpecial: sourceDay.isSpecial,
+              },
+            ];
+            return newDays;
+          });
+        }, []);
+
+        const handleDuplicateRow = useCallback((index) => {
+          setDays((currentDays) => {
+            const newDays = [...currentDays];
+            const dayToDuplicate = newDays[index];
+            const newDay = {
+              ...dayToDuplicate,
+              gregorianDate: new Date(dayToDuplicate.gregorianDate.getTime()),
+            };
+            newDays.splice(index + 1, 0, newDay);
+            return newDays;
+          });
+        }, []);
+
+        const handleDeleteRow = useCallback((index) => {
+          if (!window.confirm("هل أنت متأكد من رغبتك في حذف هذا الصف؟")) {
+            return;
+          }
+          setDays((currentDays) => currentDays.filter((_, i) => i !== index));
+        }, []);
+
+        // Effect to update end date when days array changes due to add/delete
+        useEffect(() => {
+          if (days.length > 0) {
+            const lastDay = days[days.length - 1];
+            const newEndDate = lastDay.gregorianDate
+              .toISOString()
+              .substring(0, 10);
+            if (newEndDate !== endDate) {
+              setEndDate(newEndDate);
+            }
+          }
+        }, [days]);
+
+        const handlePasteTopicsFromClipboard = async () => {
+          try {
+            if (!navigator.clipboard?.readText) {
+              alert(
+                "متصفحك لا يدعم هذه الميزة. الرجاء اللصق يدوياً في الخلية الأولى."
+              );
+              return;
+            }
+            const text = await navigator.clipboard.readText();
+            if (!text || text.trim() === "") {
+              alert("لا يوجد موضوعات منسوخة في الحافظة.");
+              return;
+            }
+            const lines = text
+              .split(/\r?\n/)
+              .filter((line) => line.trim() !== "");
+            handleTopicPaste(0, lines);
+          } catch (err) {
+            console.error("فشل اللصق من الحافظة:", err);
+            alert(
+              "فشل اللصق التلقائي بسبب قيود الأمان.\n\nالحل: الرجاء لصق الموضوعات يدويًا في أول خانة بالموضوعات، وسيقوم التطبيق بتوزيعها تلقائيًا."
+            );
+          }
+        };
+
+        const handleFileImport = (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = JSON.parse(e.target?.result);
+              // Validate imported data
+              if (
+                !data ||
+                data.version > 5 ||
+                !data.startDate ||
+                !data.endDate ||
+                !data.title
+              ) {
+                alert("ملف JSON غير صالح أو إصدار غير مدعوم.");
+                return;
+              }
+
+              // The root of the problem is a race condition. State updates are async.
+              // We must ensure primary data (dates, meta) is set BEFORE we generate/set the days.
+              // Using a small timeout forces React to process the first batch of updates,
+              // making the new state available for the second batch.
+
+              // Batch 1: Update everything EXCEPT the days array
+              setTitle(data.title);
+              setStartDate(data.startDate);
+              setEndDate(data.endDate);
+              setMeta((currentMeta) => ({
+                ...currentMeta, // Start with current (or default) meta
+                ...data.meta, // Override with imported meta data
+              }));
+              if (data.viewMode) {
+                setViewMode(data.viewMode);
+              }
+
+              // Batch 2: After a tiny delay, generate and set the days.
+              // This ensures generateDays() runs with the NEWLY set dates.
+              setTimeout(() => {
+                const importedDays = generateDays(data.startDate, data.endDate);
+                if (Array.isArray(data.days)) {
+                  data.days.forEach((dayData, index) => {
+                    if (importedDays[index]) {
+                      importedDays[index].topic = dayData.topic || "";
+                      if (dayData.isSpecial) {
+                        importedDays[index].isSpecial = true;
+                      }
+                    }
+                  });
+                }
+                setDays(importedDays);
+              }, 0);
+            } catch (err) {
+              alert("فشل قراءة ملف JSON. تأكد من أن الملف صحيح.");
+            } finally {
+              if (importInputRef.current) importInputRef.current.value = "";
+            }
+          };
+          reader.readAsText(file, "utf-8");
+        };
+
+        const handleExport = (fileType) => {
+          if (!days.length) {
+            alert("لا يوجد جدول لتصديره.");
+            return;
+          }
+          let blob, fileName;
+          if (fileType === "json") {
+            const data = {
+              version: 5,
+              title,
+              startDate,
+              endDate,
+              meta,
+              viewMode,
+              days: days.map((d, i) => ({
+                index: i + 1,
+                topic: d.topic,
+                isSpecial: d.isSpecial || false,
+              })),
+            };
+            blob = new Blob([JSON.stringify(data, null, 2)], {
+              type: "application/json;charset=utf-8;",
+            });
+            fileName = `plan_${startDate}_to_${endDate}.json`;
+          } else {
+            const topics = days
+              .map((day) => day.topic.trim().replace(/\r?\n/g, " "))
+              .filter(Boolean)
+              .join("\r\n");
+            if (!topics) {
+              alert("لا توجد موضوعات مكتوبة لتصديرها.");
+              return;
+            }
+            blob = new Blob(["\uFEFF" + topics], {
+              type: "text/plain;charset=utf-8;",
+            });
+            fileName = "topics.txt";
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        };
+
+        const handlePrint = () => {
+          if (!days.length) {
+            alert("لا يوجد جدول لطباعته.");
+            return;
+          }
+          const printableArea = document.getElementById(
+            "printable-area-content"
+          );
+          const printHeader = document.getElementById(
+            "printable-header-content"
+          ).innerHTML;
+          const printFooter = document.getElementById(
+            "printable-footer-content"
+          ).innerHTML;
+
+          if (!printableArea) {
+            alert("حدث خطأ أثناء محاولة الطباعة.");
+            return;
+          }
+
+          const printableClone = printableArea.cloneNode(true);
+          printableClone
+            .querySelectorAll("textarea[data-row-index]")
+            .forEach((textarea) => {
+              const div = document.createElement("div");
+              div.style.whiteSpace = "pre-wrap";
+              div.style.wordWrap = "break-word";
+              div.textContent = textarea.value;
+              const isWeekend = textarea.disabled;
+              div.className = `p-2 w-full h-full ${
+                isWeekend ? "text-center" : ""
+              }`;
+              textarea.parentNode?.replaceChild(div, textarea);
+            });
+
+          const printSpecificStyles = `
+                          body { font-family: 'Tajawal', sans-serif !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                          @page { size: A4 landscape; margin: 1cm; }
+                          .planner-table-for-print { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
+                          .planner-table-for-print th, .planner-table-for-print td { border: 1px solid #a0aec0 !important; padding: 6px !important; word-wrap: break-word !important; text-align: center !important; vertical-align: middle !important; }
+                          .planner-table-for-print th { font-weight: bold !important; background-color: #f7fafc !important; }
+                          .planner-table-for-print tr { break-inside: avoid; }
+                          .planner-table-for-print .bg-yellow-100 { background-color: #fefcbf !important; }
+                          .planner-table-for-print .bg-gray-200 { background-color: #e2e8f0 !important; }
+                          .cards-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 0.25rem !important; }
+                          .card-item { break-inside: avoid !important; border: 1px solid #e2e8f0 !important; border-radius: 0.25rem !important; box-shadow: none !important; background-color: #fff !important; padding: 0.5rem !important; display: flex !important; flex-direction: column !important; font-size: 9pt !important; }
+                          .card-item .card-header { display: flex !important; justify-content: space-between !important; align-items: baseline !important; border-bottom: 1px solid #e2e8f0 !important; padding-bottom: 0.25rem !important; margin-bottom: 0.25rem !important; }
+                          .card-item h3 { font-weight: bold !important; font-size: 10pt !important; color: #2b6cb0 !important; }
+                          .card-item .card-date { font-size: 8pt !important; color: #718096 !important; text-align: left !important; }
+                          .card-item ol { list-style-type: decimal !important; list-style-position: inside !important; padding-right: 0.75rem !important; color: #2d3748 !important; flex-grow: 1 !important; margin: 0; }
+                          .card-item ol li { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+                          .card-item p.text-gray-400 { color: #a0aec0 !important; text-align: center !important; flex-grow: 1 !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 1rem 0 !important; }
+                      `;
+
+          const printWindow = window.open("", "_blank");
+          if (!printWindow) {
+            alert(
+              "فشل فتح نافذة الطباعة. يرجى التحقق من مانع النوافذ المنبثقة."
+            );
+            return;
+          }
+
+          printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html lang="ar" dir="rtl">
+                          <head>
+                              <meta charset="UTF-8" />
+                              <title>${title}</title>
+                              <script src="https://cdn.tailwindcss.com"><\/script>
+                              <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+                              <style>${printSpecificStyles}</style>
+                          </head>
+                          <body>
+                              ${printHeader}
+                              ${printableClone.innerHTML}
+                              ${printFooter}
+                          </body>
+                          </html>`);
+          printWindow.document.close();
+          setTimeout(() => {
+            try {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+            } catch (e) {
+              console.error("Print failed:", e);
+              alert("فشلت عملية الطباعة.");
+              printWindow.close();
+            }
+          }, 1200);
+        };
+
+        const handleCopy = async () => {
+          if (!days.length) {
+            alert("لا يوجد جدول لنسخه.");
+            return;
+          }
+          if (!navigator.clipboard || !navigator.clipboard.write) {
+            alert(
+              "فشل النسخ: متصفحك لا يدعم النسخ المنسق أو أنك لا تستخدم اتصال آمن (HTTPS)."
+            );
+            return;
+          }
+          const printableArea = document.getElementById(
+            "printable-area-content"
+          );
+          const header = document.getElementById(
+            "printable-header-content"
+          ).innerHTML;
+          const footer = document.getElementById(
+            "printable-footer-content"
+          ).innerHTML;
+          if (!printableArea) {
+            alert("حدث خطأ أثناء محاولة النسخ.");
+            return;
+          }
+
+          const contentClone = printableArea.cloneNode(true);
+          contentClone
+            .querySelectorAll("textarea[data-row-index]")
+            .forEach((textarea) => {
+              const div = document.createElement("div");
+              div.innerHTML = textarea.value.replace(/\n/g, "<br />");
+              const isWeekend = textarea.disabled;
+              div.className = isWeekend ? "text-center" : "";
+              textarea.parentNode.replaceChild(div, textarea);
+            });
+
+          const getClipboardStyles = () => `
+                          <style>
+                              body { font-family: 'Tajawal', sans-serif; direction: rtl; }
+                              table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+                              th, td { border: 1px solid #a0aec0; padding: 6px; text-align: center; vertical-align: middle; word-wrap: break-word; }
+                              th { font-weight: 700; background-color: #f7fafc; }
+                              tr.bg-yellow-100 { background-color: #fefcbf !important; }
+                              tr.bg-gray-200 { background-color: #e2e8f0 !important; }
+                              .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+                              .card-item { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; }
+                          </style>
+                      `;
+
+          const htmlContent = `<!DOCTYPE html>
+                          <html lang="ar" dir="rtl">
+                          <head><meta charset="UTF-8"><title>${title}</title>${getClipboardStyles()}</head>
+                          <body>${header}${
+            contentClone.innerHTML
+          }${footer}</body>
+                          </html>`;
+
+          try {
+            const blob = new Blob([htmlContent], { type: "text/html" });
+            const clipboardItem = new ClipboardItem({ "text/html": blob });
+            await navigator.clipboard.write([clipboardItem]);
+            alert("تم نسخ المحتوى بنجاح! يمكنك الآن لصقه في Word.");
+          } catch (err) {
+            console.error("فشل النسخ: ", err);
+            alert("فشل النسخ إلى الحافظة.");
+          }
+        };
+
+        const handleExportHtml = useCallback(async () => {
+          // By using useCallback with dependencies, this function is always
+          // recreated with the latest state, solving the stale state issue.
+          if (!days.length && !isStandalone) {
+            alert("لا يوجد جدول لتصديره.");
+            return;
+          }
+          const currentState = {
+            title,
+            startDate,
+            endDate,
+            days,
+            meta,
+            viewMode,
+          };
+
+          const serializableDays = currentState.days.map((day) => ({
+            ...day,
+            gregorianDate: day.gregorianDate.toISOString(),
+            isSpecial: day.isSpecial || false,
+          }));
+          const serializedData = JSON.stringify({
+            title: currentState.title,
+            days: serializableDays,
+            meta: currentState.meta,
+            viewMode: currentState.viewMode,
+          });
+
+          // 1. Generate all CSS used in the document for embedding
+          const allStyles = Array.from(document.styleSheets)
+            .map((sheet) => {
+              try {
+                return Array.from(sheet.cssRules)
+                  .map((rule) => rule.cssText)
+                  .join("");
+              } catch (e) {
+                return "";
+              }
+            })
+            .join("");
+
+          // 2. Get the main application script content
+          const appScriptContent = document.querySelector(
+            'script[type="text/babel"]'
+          ).innerHTML;
+
+          // 3. Fetch and embed external libraries (React, ReactDOM, Babel)
+          // This makes the exported file fully offline-capable.
+          const reactScript = await fetch(
+            "https://unpkg.com/react@18/umd/react.production.min.js"
+          ).then((res) => res.text());
+          const reactDomScript = await fetch(
+            "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+          ).then((res) => res.text());
+          const babelScript = await fetch(
+            "https://unpkg.com/@babel/standalone/babel.min.js"
+          ).then((res) => res.text());
+
+          const htmlTemplate = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${currentState.title}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+          <style>
+              ${allStyles} body { font-family: 'Tajawal', sans-serif; }
+              @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          </style>
+      </head>
+      <body class="bg-gray-100">
+          <div id="root"></div>
+          <script>${reactScript}<\/script>
+          <script>${reactDomScript}<\/script>
+          <script>${babelScript}<\/script>
+          <script type="text/babel">
+              const initialData = ${serializedData};
+              // --- Main App Logic ---
+              // This is the same code as the editor, but running with initialData.
+              ${appScriptContent}
+          <\/script>
+      </body>
+      </html>
+      `;
+          const blob = new Blob([htmlTemplate.trim()], {
+            type: "text/html;charset=utf-8;",
+          });
+          const fileName = `interactive_plan_${
+            currentState.startDate || "new"
+          }.html`;
+          const url = URL.createObjectURL(blob); // This line was missing in the previous diff
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, [title, startDate, endDate, days, meta, viewMode, isStandalone]); // Dependency array
+
+        // Wrapper to handle async export and catch errors
+        const handleExportHtmlWrapper = () => {
+          handleExportHtml().catch((err) => {
+            console.error("Failed to export HTML:", err);
+            alert(
+              "فشل تصدير الملف. قد تكون هناك مشكلة في الاتصال بالإنترنت لتضمين المكتبات."
+            );
+          });
+        };
+
+        return (
+          <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+            <main className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+              <Header
+                title={title}
+                onTitleChange={setTitle}
+                isReadOnly={isStandalone}
+              />
+
+              {isStandalone ? (
+                <StandaloneToolbar
+                  onPrint={handlePrint}
+                  onConfigClick={() => setConfigVisible((v) => !v)}
+                  isConfigVisible={isConfigVisible}
+                />
+              ) : (
+                <Toolbar
+                  onPrint={handlePrint}
+                  onCopy={handleCopy}
+                  onViewModeChange={() =>
+                    setViewMode((v) => (v === "table" ? "cards" : "table"))
+                  }
+                  currentViewMode={viewMode}
+                  onPasteTopics={handlePasteTopicsFromClipboard}
+                  onClearAllTopics={handleClearAllTopics}
+                  onExportText={() => handleExport("text")}
+                  onExportJson={() => handleExport("json")}
+                  onExportHtml={handleExportHtmlWrapper}
+                  onImportClick={() => importInputRef.current?.click()}
+                  onHelpClick={() => setHelpVisible(true)}
+                  onConfigClick={() => setConfigVisible((v) => !v)}
+                  isConfigVisible={isConfigVisible}
+                  isDataActionsDisabled={days.length === 0}
+                />
+              )}
+
+              {/* Collapsible Config Section - Your Idea! */}
+              {isHelpVisible && (
+                <HelpModal onClose={() => setHelpVisible(false)} />
+              )}
+
+              <div className="mb-6 print:hidden">
+                {isConfigVisible && (
+                  <div className="p-6 border border-gray-300 rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                      إعدادات الترويسة والطباعة
+                    </h2>
+                    <ConfigForm meta={meta} onSave={setMeta} />
+                  </div>
+                )}
+              </div>
+
+              {!isStandalone && days.length === 0 && (
+                <DateRangeSelector
+                  startDate={startDate}
+                  endDate={endDate}
+                  onDatesChange={(start, end) => {
+                    setStartDate(start);
+                    setEndDate(end);
+                  }}
+                  onGenerate={handleGenerateTable}
+                />
+              )}
+
+              <div className="mt-6">
+                <div id="printable-area">
+                  <div id="printable-header-content">
+                    <PrintHeader meta={meta} title={title} />
+                  </div>
+                  <div id="printable-area-content">
+                    {days.length > 0 ? (
+                      viewMode === "table" ? (
+                        <PlannerTable
+                          days={days}
+                          meta={meta}
+                          onTopicChange={handleTopicChange}
+                          onTopicPaste={handleTopicPaste}
+                          onAddRow={handleAddRow}
+                          onDuplicateRow={handleDuplicateRow}
+                          onSwapTopics={handleSwapTopics}
+                          onToggleSpecialDay={handleToggleSpecialDay}
+                          onClearTopic={handleClearTopic}
+                          onDeleteRow={handleDeleteRow}
+                          isReadOnly={isStandalone}
+                        />
+                      ) : (
+                        <PlannerCards days={days} meta={meta} />
+                      )
+                    ) : (
+                      // Render empty table with handlers to avoid errors
+                      <PlannerTable
+                        days={[]}
+                        meta={meta}
+                        onTopicChange={handleTopicChange}
+                        onTopicPaste={handleTopicPaste}
+                      />
+                    )}
+                  </div>
+                  <div id="printable-footer-content">
+                    <PrintFooter meta={meta} />
+                  </div>
+                </div>
+              </div>
+              {!isStandalone && (
+                <input
+                  type="file"
+                  ref={importInputRef}
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={handleFileImport}
+                />
+              )}
+            </main>
+            <Footer />
+          </div>
+        );
+      };
+
+      // --- RENDER APP ---
+      const container = document.getElementById("root");
+      if (container) {
+        const root = ReactDOM.createRoot(container);
+        try {
+          // This will succeed only in the exported file where initialData is defined.
+          if (typeof initialData !== "undefined") {
+            root.render(
+              <React.StrictMode>
+                <App isStandalone={true} initialData={initialData} />
+              </React.StrictMode>
+            );
+          } else {
+            throw new Error("Running in editor mode.");
+          }
+        } catch (e) {
+          // This will run in the main editor.
+          root.render(
+            <React.StrictMode>
+              <App isStandalone={false} />
+            </React.StrictMode>
+          );
+        }
+      }
+    </script>
   </body>
 </html>
